@@ -27,7 +27,7 @@ function ReportesPage() {
   const aptos = confirmandos.filter((c: any) => c.status === "apto" || c.status === "confirmado");
   const sinBautismo = confirmandos.filter((c: any) => !c.has_baptism);
 
-  const reportes = [
+  const reportes: { title: string; desc: string; icon: any; data: () => Record<string, unknown>[]; filename: string }[] = [
     {
       title: "Listado completo de confirmandos",
       desc: `${confirmandos.length} registros con grupo, padrino y sacramentos.`,

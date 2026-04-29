@@ -13,6 +13,14 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppReportesRouteImport } from './routes/app.reportes'
+import { Route as AppPagosRouteImport } from './routes/app.pagos'
+import { Route as AppPadrinosRouteImport } from './routes/app.padrinos'
+import { Route as AppConfirmandosRouteImport } from './routes/app.confirmandos'
+import { Route as AppConfiguracionRouteImport } from './routes/app.configuracion'
+import { Route as AppCharlasRouteImport } from './routes/app.charlas'
+import { Route as AppCalendarioRouteImport } from './routes/app.calendario'
+import { Route as AppAsistenciaRouteImport } from './routes/app.asistencia'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -34,16 +42,72 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppReportesRoute = AppReportesRouteImport.update({
+  id: '/reportes',
+  path: '/reportes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPagosRoute = AppPagosRouteImport.update({
+  id: '/pagos',
+  path: '/pagos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPadrinosRoute = AppPadrinosRouteImport.update({
+  id: '/padrinos',
+  path: '/padrinos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppConfirmandosRoute = AppConfirmandosRouteImport.update({
+  id: '/confirmandos',
+  path: '/confirmandos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppConfiguracionRoute = AppConfiguracionRouteImport.update({
+  id: '/configuracion',
+  path: '/configuracion',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCharlasRoute = AppCharlasRouteImport.update({
+  id: '/charlas',
+  path: '/charlas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCalendarioRoute = AppCalendarioRouteImport.update({
+  id: '/calendario',
+  path: '/calendario',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAsistenciaRoute = AppAsistenciaRouteImport.update({
+  id: '/asistencia',
+  path: '/asistencia',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/app/asistencia': typeof AppAsistenciaRoute
+  '/app/calendario': typeof AppCalendarioRoute
+  '/app/charlas': typeof AppCharlasRoute
+  '/app/configuracion': typeof AppConfiguracionRoute
+  '/app/confirmandos': typeof AppConfirmandosRoute
+  '/app/padrinos': typeof AppPadrinosRoute
+  '/app/pagos': typeof AppPagosRoute
+  '/app/reportes': typeof AppReportesRoute
   '/app/': typeof AppIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/app/asistencia': typeof AppAsistenciaRoute
+  '/app/calendario': typeof AppCalendarioRoute
+  '/app/charlas': typeof AppCharlasRoute
+  '/app/configuracion': typeof AppConfiguracionRoute
+  '/app/confirmandos': typeof AppConfirmandosRoute
+  '/app/padrinos': typeof AppPadrinosRoute
+  '/app/pagos': typeof AppPagosRoute
+  '/app/reportes': typeof AppReportesRoute
   '/app': typeof AppIndexRoute
 }
 export interface FileRoutesById {
@@ -51,14 +115,58 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/app/asistencia': typeof AppAsistenciaRoute
+  '/app/calendario': typeof AppCalendarioRoute
+  '/app/charlas': typeof AppCharlasRoute
+  '/app/configuracion': typeof AppConfiguracionRoute
+  '/app/confirmandos': typeof AppConfirmandosRoute
+  '/app/padrinos': typeof AppPadrinosRoute
+  '/app/pagos': typeof AppPagosRoute
+  '/app/reportes': typeof AppReportesRoute
   '/app/': typeof AppIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/app' | '/auth' | '/app/'
+  fullPaths:
+    | '/'
+    | '/app'
+    | '/auth'
+    | '/app/asistencia'
+    | '/app/calendario'
+    | '/app/charlas'
+    | '/app/configuracion'
+    | '/app/confirmandos'
+    | '/app/padrinos'
+    | '/app/pagos'
+    | '/app/reportes'
+    | '/app/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/app'
-  id: '__root__' | '/' | '/app' | '/auth' | '/app/'
+  to:
+    | '/'
+    | '/auth'
+    | '/app/asistencia'
+    | '/app/calendario'
+    | '/app/charlas'
+    | '/app/configuracion'
+    | '/app/confirmandos'
+    | '/app/padrinos'
+    | '/app/pagos'
+    | '/app/reportes'
+    | '/app'
+  id:
+    | '__root__'
+    | '/'
+    | '/app'
+    | '/auth'
+    | '/app/asistencia'
+    | '/app/calendario'
+    | '/app/charlas'
+    | '/app/configuracion'
+    | '/app/confirmandos'
+    | '/app/padrinos'
+    | '/app/pagos'
+    | '/app/reportes'
+    | '/app/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -97,14 +205,86 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/reportes': {
+      id: '/app/reportes'
+      path: '/reportes'
+      fullPath: '/app/reportes'
+      preLoaderRoute: typeof AppReportesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/pagos': {
+      id: '/app/pagos'
+      path: '/pagos'
+      fullPath: '/app/pagos'
+      preLoaderRoute: typeof AppPagosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/padrinos': {
+      id: '/app/padrinos'
+      path: '/padrinos'
+      fullPath: '/app/padrinos'
+      preLoaderRoute: typeof AppPadrinosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/confirmandos': {
+      id: '/app/confirmandos'
+      path: '/confirmandos'
+      fullPath: '/app/confirmandos'
+      preLoaderRoute: typeof AppConfirmandosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/configuracion': {
+      id: '/app/configuracion'
+      path: '/configuracion'
+      fullPath: '/app/configuracion'
+      preLoaderRoute: typeof AppConfiguracionRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/charlas': {
+      id: '/app/charlas'
+      path: '/charlas'
+      fullPath: '/app/charlas'
+      preLoaderRoute: typeof AppCharlasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/calendario': {
+      id: '/app/calendario'
+      path: '/calendario'
+      fullPath: '/app/calendario'
+      preLoaderRoute: typeof AppCalendarioRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/asistencia': {
+      id: '/app/asistencia'
+      path: '/asistencia'
+      fullPath: '/app/asistencia'
+      preLoaderRoute: typeof AppAsistenciaRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppAsistenciaRoute: typeof AppAsistenciaRoute
+  AppCalendarioRoute: typeof AppCalendarioRoute
+  AppCharlasRoute: typeof AppCharlasRoute
+  AppConfiguracionRoute: typeof AppConfiguracionRoute
+  AppConfirmandosRoute: typeof AppConfirmandosRoute
+  AppPadrinosRoute: typeof AppPadrinosRoute
+  AppPagosRoute: typeof AppPagosRoute
+  AppReportesRoute: typeof AppReportesRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAsistenciaRoute: AppAsistenciaRoute,
+  AppCalendarioRoute: AppCalendarioRoute,
+  AppCharlasRoute: AppCharlasRoute,
+  AppConfiguracionRoute: AppConfiguracionRoute,
+  AppConfirmandosRoute: AppConfirmandosRoute,
+  AppPadrinosRoute: AppPadrinosRoute,
+  AppPagosRoute: AppPagosRoute,
+  AppReportesRoute: AppReportesRoute,
   AppIndexRoute: AppIndexRoute,
 }
 
