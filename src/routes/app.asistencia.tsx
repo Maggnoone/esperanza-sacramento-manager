@@ -115,9 +115,9 @@ function AsistenciaPage() {
             <div className="flex items-center gap-2">
               <Badge variant="secondary">{presentes} / {confirmandos.length} presentes</Badge>
               <div className="flex items-center gap-1">
-                <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={!exportData.length} className="h-8 px-2 cursor-pointer"><Download className="h-3 w-3 mr-1" />CSV</Button>
-                <Button variant="outline" size="sm" onClick={handleExportXLSX} disabled={!exportData.length} className="h-8 px-2 cursor-pointer"><FileSpreadsheet className="h-3 w-3 mr-1" />Excel</Button>
-                <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={!exportData.length} className="h-8 px-2 cursor-pointer"><FileText className="h-3 w-3 mr-1" />PDF</Button>
+                <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={!exportData.length} className="px-2"><Download className="h-3 w-3 mr-1" />CSV</Button>
+                <Button variant="outline" size="sm" onClick={handleExportXLSX} disabled={!exportData.length} className="px-2"><FileSpreadsheet className="h-3 w-3 mr-1" />Excel</Button>
+                <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={!exportData.length} className="px-2"><FileText className="h-3 w-3 mr-1" />PDF</Button>
               </div>
             </div>
           </CardHeader>

@@ -12,7 +12,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Pencil, Trash2, Download } from "lucide-react";
+import { Plus, Pencil, Trash2, Download, Inbox } from "lucide-react";
+import { DeleteDialog } from "@/components/DeleteDialog";
+import { FieldError } from "@/components/FieldError";
+import { TableSkeleton } from "@/components/TableSkeleton";
 import { toast } from "sonner";
 import { exportToXLSX } from "@/lib/export";
 import { useAuth } from "@/hooks/use-auth";
@@ -39,7 +42,7 @@ function PadrinosPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Padrino | null>(null);
 
-  const { data: rows = [] } = usePadrinos();
+  const { data: rows = [], isLoading } = usePadrinos();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -96,11 +99,20 @@ function PadrinosPage() {
       <Card className="shadow-soft">
         <CardHeader><CardTitle className="text-base">{rows.length} padrinos registrados</CardTitle></CardHeader>
         <CardContent>
-          <Table>
+          <div className="overflow-x-auto">
+            <Table>
             <TableHeader><TableRow><TableHead>Nombre</TableHead><TableHead>DNI</TableHead><TableHead>Teléfono</TableHead><TableHead>Parentesco</TableHead><TableHead>Confirmado</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
             <TableBody>
-              {rows.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sin registros</TableCell></TableRow>
+              {isLoading ? (
+                <TableRow><TableCell colSpan={6} className="py-0"><TableSkeleton cols={6} rows={5} /></TableCell></TableRow>
+              ) : rows.length === 0 ? (
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                  <div className="flex flex-col items-center gap-2">
+                    <Inbox className="h-8 w-8 opacity-40" />
+                    <p>No hay padrinos registrados.</p>
+                    <Button size="sm" variant="outline" onClick={openNew}><Plus className="mr-2 h-4 w-4" />Nuevo padrino</Button>
+                  </div>
+                </TableCell></TableRow>
               ) : rows.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell className="font-medium">{r.full_name}</TableCell>
@@ -109,13 +121,26 @@ function PadrinosPage() {
                   <TableCell>{r.parentesco ?? "—"}</TableCell>
                   <TableCell>{r.has_confirmation ? "Sí" : "No"}</TableCell>
                   <TableCell className="text-right">
-                    <Button size="icon" variant="ghost" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
-                    {isAdmin && <Button size="icon" variant="ghost" onClick={() => confirm("¿Eliminar?") && remove.mutate(r.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}
+                    <Button size="icon" variant="ghost" aria-label={`Editar padrino ${r.full_name}`} onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
+                    {isAdmin && (
+                      <DeleteDialog
+                        title={`¿Eliminar a ${r.full_name}?`}
+                        description="Esta acción eliminará permanentemente el registro del padrino."
+                        trigger={
+                          <Button size="icon" variant="ghost" aria-label={`Eliminar padrino ${r.full_name}`} disabled={remove.isPending}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        }
+                        onConfirm={() => remove.mutate(r.id)}
+                        isPending={remove.isPending}
+                      />
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
-          </Table>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
@@ -123,14 +148,38 @@ function PadrinosPage() {
         <DialogContent>
           <DialogHeader><DialogTitle>{editing ? "Editar padrino" : "Nuevo padrino"}</DialogTitle></DialogHeader>
           <form onSubmit={form.handleSubmit((v) => save.mutate(v))} className="grid gap-4 sm:grid-cols-2">
-            <div className="sm:col-span-2"><Label>Nombre completo *</Label><Input {...form.register("full_name")} /></div>
-            <div><Label>DNI</Label><Input {...form.register("dni")} /></div>
-            <div><Label>Parentesco</Label><Input {...form.register("parentesco")} placeholder="Tío, abuela..." /></div>
-            <div><Label>Teléfono</Label><Input {...form.register("telefono")} /></div>
-            <div><Label>Email</Label><Input type="email" {...form.register("email")} /></div>
+            <div className="sm:col-span-2 space-y-1">
+              <Label htmlFor="full_name">Nombre completo <span className="text-destructive">*</span></Label>
+              <Input id="full_name" {...form.register("full_name")} aria-invalid={!!form.formState.errors.full_name} />
+              <FieldError name="full_name" form={form} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="dni">DNI</Label>
+              <Input id="dni" {...form.register("dni")} aria-invalid={!!form.formState.errors.dni} />
+              <FieldError name="dni" form={form} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="parentesco">Parentesco</Label>
+              <Input id="parentesco" {...form.register("parentesco")} placeholder="Tío, abuela..." aria-invalid={!!form.formState.errors.parentesco} />
+              <FieldError name="parentesco" form={form} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="telefono">Teléfono</Label>
+              <Input id="telefono" {...form.register("telefono")} aria-invalid={!!form.formState.errors.telefono} />
+              <FieldError name="telefono" form={form} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" {...form.register("email")} aria-invalid={!!form.formState.errors.email} />
+              <FieldError name="email" form={form} />
+            </div>
             <div className="flex items-center gap-2"><Checkbox id="conf" checked={form.watch("has_confirmation")} onCheckedChange={(c) => form.setValue("has_confirmation", !!c)} /><Label htmlFor="conf">Está confirmado</Label></div>
             <div className="flex items-center gap-2"><Checkbox id="mar" checked={!!form.watch("is_married_church")} onCheckedChange={(c) => form.setValue("is_married_church", !!c)} /><Label htmlFor="mar">Casado por iglesia</Label></div>
-            <div className="sm:col-span-2"><Label>Notas</Label><Input {...form.register("notas")} /></div>
+            <div className="sm:col-span-2 space-y-1">
+              <Label htmlFor="notas">Notas</Label>
+              <Input id="notas" {...form.register("notas")} aria-invalid={!!form.formState.errors.notas} />
+              <FieldError name="notas" form={form} />
+            </div>
             <DialogFooter className="sm:col-span-2">
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
               <Button type="submit" disabled={save.isPending}>Guardar</Button>

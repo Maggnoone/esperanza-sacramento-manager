@@ -14,7 +14,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Inbox } from "lucide-react";
+import { DeleteDialog } from "@/components/DeleteDialog";
+import { TableSkeleton } from "@/components/TableSkeleton";
 import { toast } from "sonner";
 import { formatDateTime } from "@/lib/export";
 import { useAuth } from "@/hooks/use-auth";
@@ -40,7 +42,7 @@ function CharlasPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Charla | null>(null);
 
-  const { data: rows = [] } = useCharlas();
+  const { data: rows = [], isLoading } = useCharlas();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -103,11 +105,20 @@ function CharlasPage() {
       <Card className="shadow-soft">
         <CardHeader><CardTitle className="text-base">{rows.length} sesiones</CardTitle></CardHeader>
         <CardContent>
-          <Table>
+          <div className="overflow-x-auto">
+            <Table>
             <TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead>Título</TableHead><TableHead>Tipo</TableHead><TableHead>Ponente</TableHead><TableHead>Ubicación</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
             <TableBody>
-              {rows.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sin sesiones programadas</TableCell></TableRow>
+              {isLoading ? (
+                <TableRow><TableCell colSpan={6} className="py-0"><TableSkeleton cols={6} rows={5} /></TableCell></TableRow>
+              ) : rows.length === 0 ? (
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                  <div className="flex flex-col items-center gap-2">
+                    <Inbox className="h-8 w-8 opacity-40" />
+                    <p>No hay sesiones programadas.</p>
+                    <Button size="sm" variant="outline" onClick={openNew}><Plus className="mr-2 h-4 w-4" />Nueva sesión</Button>
+                  </div>
+                </TableCell></TableRow>
               ) : rows.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell>{formatDateTime(r.fecha)}</TableCell>
@@ -116,13 +127,26 @@ function CharlasPage() {
                   <TableCell>{r.ponente ?? "—"}</TableCell>
                   <TableCell>{r.ubicacion ?? "—"}</TableCell>
                   <TableCell className="text-right">
-                    <Button size="icon" variant="ghost" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
-                    {isAdmin && <Button size="icon" variant="ghost" onClick={() => confirm("¿Eliminar?") && remove.mutate(r.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}
+                    <Button size="icon" variant="ghost" aria-label={`Editar charla ${r.titulo}`} onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
+                    {isAdmin && (
+                      <DeleteDialog
+                        title={`¿Eliminar charla "${r.titulo}"?`}
+                        description="Esta acción eliminará permanentemente la sesión del itinerario."
+                        trigger={
+                          <Button size="icon" variant="ghost" aria-label={`Eliminar charla ${r.titulo}`} disabled={remove.isPending}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        }
+                        onConfirm={() => remove.mutate(r.id)}
+                        isPending={remove.isPending}
+                      />
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
-          </Table>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 

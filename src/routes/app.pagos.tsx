@@ -11,6 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Wallet, Download } from "lucide-react";
+import { TableSkeleton } from "@/components/TableSkeleton";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { formatCurrency, formatDate, exportToXLSX, exportToPDF } from "@/lib/export";
@@ -36,8 +37,8 @@ function PagosPage() {
 
   if (!canSeePagos) return <Navigate to="/app" />;
 
-  const { data: confirmandos = [] } = useConfirmandosSimple();
-  const { data: pagos = [] } = usePagos();
+  const { data: confirmandos = [], isLoading: loadingConfirmandos } = useConfirmandosSimple();
+  const { data: pagos = [], isLoading: loadingPagos } = usePagos();
   const { data: costo } = useCostoRetiro();
 
   const balances = useMemo<BalanceRow[]>(() => {
@@ -126,40 +127,55 @@ function PagosPage() {
       <Card className="shadow-soft">
         <CardHeader><CardTitle className="text-base">Estado por confirmando</CardTitle></CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader><TableRow><TableHead>Confirmando</TableHead><TableHead>Abonado</TableHead><TableHead>Pendiente</TableHead><TableHead className="w-48">Cumplimiento</TableHead></TableRow></TableHeader>
-            <TableBody>
-              {balances.map((b) => (
-                <TableRow key={b.id}>
-                  <TableCell className="font-medium">{b.full_name}</TableCell>
-                  <TableCell>{formatCurrency(b.abonado)}</TableCell>
-                  <TableCell className={b.pendiente === 0 ? "text-success font-medium" : "text-warning"}>{formatCurrency(b.pendiente)}</TableCell>
-                  <TableCell><div className="flex items-center gap-2"><Progress value={b.pct} className="flex-1" /><span className="text-xs text-muted-foreground w-10 text-right">{Math.round(b.pct)}%</span></div></TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader><TableRow><TableHead>Confirmando</TableHead><TableHead>Abonado</TableHead><TableHead>Pendiente</TableHead><TableHead className="w-48">Cumplimiento</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {loadingConfirmandos ? (
+                  <TableRow><TableCell colSpan={4} className="py-0"><TableSkeleton cols={4} rows={5} /></TableCell></TableRow>
+                ) : balances.length === 0 ? (
+                  <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">No hay confirmandos registrados.</TableCell></TableRow>
+                ) : (
+                  balances.map((b) => (
+                    <TableRow key={b.id}>
+                      <TableCell className="font-medium">{b.full_name}</TableCell>
+                      <TableCell>{formatCurrency(b.abonado)}</TableCell>
+                      <TableCell className={b.pendiente === 0 ? "text-success font-medium" : "text-warning"}>{formatCurrency(b.pendiente)}</TableCell>
+                      <TableCell><div className="flex items-center gap-2"><Progress value={b.pct} className="flex-1" /><span className="text-xs text-muted-foreground w-10 text-right">{Math.round(b.pct)}%</span></div></TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
       <Card className="shadow-soft">
         <CardHeader><CardTitle className="text-base">Últimas transacciones</CardTitle></CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead>Confirmando</TableHead><TableHead>Monto</TableHead><TableHead>Método</TableHead><TableHead>Referencia</TableHead></TableRow></TableHeader>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead>Confirmando</TableHead><TableHead>Monto</TableHead><TableHead>Método</TableHead><TableHead>Referencia</TableHead></TableRow></TableHeader>
             <TableBody>
-              {pagos.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sin pagos registrados</TableCell></TableRow> :
+              {loadingPagos ? (
+                <TableRow><TableCell colSpan={5} className="py-0"><TableSkeleton cols={5} rows={5} /></TableCell></TableRow>
+              ) : pagos.length === 0 ? (
+                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">Sin pagos registrados</TableCell></TableRow>
+              ) : (
                 pagos.slice(0, 50).map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell>{formatDate(p.fecha)}</TableCell>
-                    <TableCell>{p.confirmandos?.full_name}</TableCell>
-                    <TableCell className="font-medium">{formatCurrency(p.monto)}</TableCell>
-                    <TableCell className="capitalize">{p.metodo}</TableCell>
-                    <TableCell className="text-muted-foreground">{p.referencia ?? "—"}</TableCell>
-                  </TableRow>
-                ))}
-            </TableBody>
-          </Table>
+                    <TableRow key={p.id}>
+                      <TableCell>{formatDate(p.fecha)}</TableCell>
+                      <TableCell>{p.confirmandos?.full_name}</TableCell>
+                      <TableCell className="font-medium">{formatCurrency(p.monto)}</TableCell>
+                      <TableCell className="capitalize">{p.metodo}</TableCell>
+                      <TableCell className="text-muted-foreground">{p.referencia ?? "—"}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 

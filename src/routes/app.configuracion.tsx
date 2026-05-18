@@ -11,6 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2 } from "lucide-react";
+import { DeleteDialog } from "@/components/DeleteDialog";
+import { TableSkeleton } from "@/components/TableSkeleton";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { useGrupos, useProfiles, useUserRoles } from "@/hooks/use-data";
@@ -28,8 +30,8 @@ function ConfigPage() {
 
   if (!isAdmin) return <Navigate to="/app" />;
 
-  const { data: grupos = [] } = useGrupos();
-  const { data: profiles = [] } = useProfiles();
+  const { data: grupos = [], isLoading: loadingGrupos } = useGrupos();
+  const { data: profiles = [], isLoading: loadingProfiles } = useProfiles();
   const { data: roles = [] } = useUserRoles();
 
   const rolesByUser = roles.reduce<Record<string, string[]>>((acc, r) => { (acc[r.user_id] ||= []).push(r.role); return acc; }, {});
@@ -71,12 +73,20 @@ function ConfigPage() {
           <Button size="sm" onClick={() => setOpenGrupo(true)}><Plus className="mr-2 h-4 w-4" />Nuevo grupo</Button>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader><TableRow><TableHead>Nombre</TableHead><TableHead>Año</TableHead><TableHead>Descripción</TableHead></TableRow></TableHeader>
-            <TableBody>
-              {grupos.map((g) => <TableRow key={g.id}><TableCell className="font-medium">{g.nombre}</TableCell><TableCell>{g.anio}</TableCell><TableCell className="text-muted-foreground">{g.descripcion ?? "—"}</TableCell></TableRow>)}
-            </TableBody>
-          </Table>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader><TableRow><TableHead>Nombre</TableHead><TableHead>Año</TableHead><TableHead>Descripción</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {loadingGrupos ? (
+                  <TableRow><TableCell colSpan={3} className="py-0"><TableSkeleton cols={3} rows={3} /></TableCell></TableRow>
+                ) : grupos.length === 0 ? (
+                  <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-6">No hay grupos creados.</TableCell></TableRow>
+                ) : (
+                  grupos.map((g) => <TableRow key={g.id}><TableCell className="font-medium">{g.nombre}</TableCell><TableCell>{g.anio}</TableCell><TableCell className="text-muted-foreground">{g.descripcion ?? "—"}</TableCell></TableRow>)
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
@@ -86,23 +96,42 @@ function ConfigPage() {
           <Button size="sm" onClick={() => setOpenRol(true)}><Plus className="mr-2 h-4 w-4" />Asignar rol</Button>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader><TableRow><TableHead>Usuario</TableHead><TableHead>Email</TableHead><TableHead>Roles</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
-            <TableBody>
-              {profiles.map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell className="font-medium">{p.full_name || "—"}</TableCell>
-                  <TableCell>{p.email}</TableCell>
-                  <TableCell><div className="flex gap-1 flex-wrap">{(rolesByUser[p.id] ?? []).map((r) => <Badge key={r} variant="secondary">{r}</Badge>)}</div></TableCell>
-                  <TableCell className="text-right">
-                    {roles.filter((r) => r.user_id === p.id).map((r) => (
-                      <Button key={r.id} size="icon" variant="ghost" title={`Quitar ${r.role}`} onClick={() => removeRol.mutate(r.id)}><Trash2 className="h-3 w-3 text-destructive" /></Button>
-                    ))}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader><TableRow><TableHead>Usuario</TableHead><TableHead>Email</TableHead><TableHead>Roles</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {loadingProfiles ? (
+                  <TableRow><TableCell colSpan={4} className="py-0"><TableSkeleton cols={4} rows={3} /></TableCell></TableRow>
+                ) : profiles.length === 0 ? (
+                  <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">No hay usuarios registrados.</TableCell></TableRow>
+                ) : (
+                  profiles.map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell className="font-medium">{p.full_name || "—"}</TableCell>
+                      <TableCell>{p.email}</TableCell>
+                      <TableCell><div className="flex gap-1 flex-wrap">{(rolesByUser[p.id] ?? []).map((r) => <Badge key={r} variant="secondary">{r}</Badge>)}</div></TableCell>
+                      <TableCell className="text-right">
+                        {roles.filter((r) => r.user_id === p.id).map((r) => (
+                          <DeleteDialog
+                            key={r.id}
+                            title={`¿Quitar rol "${r.role}"?`}
+                            description={`Se eliminará el rol de ${p.full_name || p.email}.`}
+                            trigger={
+                              <Button size="icon" variant="ghost" title={`Quitar ${r.role}`} aria-label={`Quitar rol ${r.role} a ${p.full_name || p.email}`} disabled={removeRol.isPending}>
+                                <Trash2 className="h-3 w-3 text-destructive" />
+                              </Button>
+                            }
+                            onConfirm={() => removeRol.mutate(r.id)}
+                            isPending={removeRol.isPending}
+                          />
+                        ))}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 

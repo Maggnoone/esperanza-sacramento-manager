@@ -15,7 +15,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Search, Download, Pencil, Trash2, FileSpreadsheet, FileText, FileType } from "lucide-react";
+import { Plus, Search, Download, Pencil, Trash2, FileSpreadsheet, FileText, FileType, Inbox, ChevronLeft, ChevronRight } from "lucide-react";
+import { FieldError } from "@/components/FieldError";
+import { TableSkeleton } from "@/components/TableSkeleton";
+import { DeleteDialog } from "@/components/DeleteDialog";
 import { toast } from "sonner";
 import { exportToCSV, exportToPDF, exportToXLSX } from "@/lib/export";
 import { useAuth } from "@/hooks/use-auth";
@@ -53,6 +56,8 @@ function ConfirmandosPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ConfirmandoWithRelations | null>(null);
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   const { data: rows = [], isLoading } = useConfirmandos();
   const { data: grupos = [] } = useGruposSimple();
@@ -147,6 +152,9 @@ function ConfirmandosPage() {
     return matchSearch && matchStatus;
   });
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
+
   const exportData = () =>
     filtered.map((r) => ({
       Nombre: r.full_name,
@@ -233,10 +241,16 @@ function ConfirmandosPage() {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Cargando…</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="py-0"><TableSkeleton cols={7} rows={5} /></TableCell></TableRow>
                 ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Sin registros</TableCell></TableRow>
-                ) : filtered.map((r) => (
+                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                    <div className="flex flex-col items-center gap-2">
+                      <Inbox className="h-8 w-8 opacity-40" />
+                      <p>No hay confirmandos registrados.</p>
+                      <Button size="sm" variant="outline" onClick={openNew}><Plus className="mr-2 h-4 w-4" />Nuevo confirmando</Button>
+                    </div>
+                  </TableCell></TableRow>
+                ) : paginated.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell className="font-medium">{r.full_name}</TableCell>
                     <TableCell>{r.dni ?? "—"}</TableCell>
@@ -254,11 +268,19 @@ function ConfirmandosPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button size="icon" variant="ghost" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
+                      <Button size="icon" variant="ghost" aria-label={`Editar confirmando ${r.full_name}`} onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
                       {isAdmin && (
-                        <Button size="icon" variant="ghost" onClick={() => confirm(`¿Eliminar a ${r.full_name}?`) && remove.mutate(r.id)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        <DeleteDialog
+                          title={`¿Eliminar a ${r.full_name}?`}
+                          description="Esta acción eliminará permanentemente el registro del confirmando."
+                          trigger={
+                            <Button size="icon" variant="ghost" aria-label={`Eliminar confirmando ${r.full_name}`} disabled={remove.isPending}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          }
+                          onConfirm={() => remove.mutate(r.id)}
+                          isPending={remove.isPending}
+                        />
                       )}
                     </TableCell>
                   </TableRow>
@@ -266,6 +288,36 @@ function ConfirmandosPage() {
               </TableBody>
             </Table>
           </div>
+          {filtered.length > pageSize && (
+            <div className="flex items-center justify-between border-t border-border px-6 py-3">
+              <p className="text-sm text-muted-foreground">
+                Mostrando {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filtered.length)} de {filtered.length}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  aria-label="Página anterior"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm">
+                  {page} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  aria-label="Página siguiente"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -273,28 +325,66 @@ function ConfirmandosPage() {
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>{editing ? "Editar confirmando" : "Nuevo confirmando"}</DialogTitle></DialogHeader>
           <form onSubmit={form.handleSubmit((v) => save.mutate(v))} className="grid gap-4 sm:grid-cols-2">
-            <div className="sm:col-span-2"><Label>Nombre completo *</Label><Input {...form.register("full_name")} /></div>
-            <div><Label>DNI</Label><Input {...form.register("dni")} /></div>
-            <div><Label>Fecha nacimiento</Label><Input type="date" {...form.register("fecha_nacimiento")} /></div>
-            <div><Label>Teléfono</Label><Input {...form.register("telefono")} /></div>
-            <div><Label>Email</Label><Input type="email" {...form.register("email")} /></div>
-            <div className="sm:col-span-2"><Label>Dirección</Label><Input {...form.register("direccion")} /></div>
-            <div><Label>Padre</Label><Input {...form.register("nombre_padre")} /></div>
-            <div><Label>Madre</Label><Input {...form.register("nombre_madre")} /></div>
-            <div className="sm:col-span-2"><Label>Contacto de padres</Label><Input {...form.register("contacto_padres")} /></div>
-            <div>
+            <div className="sm:col-span-2 space-y-1">
+              <Label htmlFor="full_name">Nombre completo <span className="text-destructive">*</span></Label>
+              <Input id="full_name" {...form.register("full_name")} aria-invalid={!!form.formState.errors.full_name} />
+              <FieldError name="full_name" form={form} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="dni">DNI</Label>
+              <Input id="dni" {...form.register("dni")} aria-invalid={!!form.formState.errors.dni} />
+              <FieldError name="dni" form={form} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="fecha_nacimiento">Fecha nacimiento</Label>
+              <Input id="fecha_nacimiento" type="date" {...form.register("fecha_nacimiento")} aria-invalid={!!form.formState.errors.fecha_nacimiento} />
+              <FieldError name="fecha_nacimiento" form={form} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="telefono">Teléfono</Label>
+              <Input id="telefono" {...form.register("telefono")} aria-invalid={!!form.formState.errors.telefono} />
+              <FieldError name="telefono" form={form} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" {...form.register("email")} aria-invalid={!!form.formState.errors.email} />
+              <FieldError name="email" form={form} />
+            </div>
+            <div className="sm:col-span-2 space-y-1">
+              <Label htmlFor="direccion">Dirección</Label>
+              <Input id="direccion" {...form.register("direccion")} aria-invalid={!!form.formState.errors.direccion} />
+              <FieldError name="direccion" form={form} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="nombre_padre">Padre</Label>
+              <Input id="nombre_padre" {...form.register("nombre_padre")} aria-invalid={!!form.formState.errors.nombre_padre} />
+              <FieldError name="nombre_padre" form={form} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="nombre_madre">Madre</Label>
+              <Input id="nombre_madre" {...form.register("nombre_madre")} aria-invalid={!!form.formState.errors.nombre_madre} />
+              <FieldError name="nombre_madre" form={form} />
+            </div>
+            <div className="sm:col-span-2 space-y-1">
+              <Label htmlFor="contacto_padres">Contacto de padres</Label>
+              <Input id="contacto_padres" {...form.register("contacto_padres")} aria-invalid={!!form.formState.errors.contacto_padres} />
+              <FieldError name="contacto_padres" form={form} />
+            </div>
+            <div className="space-y-1">
               <Label>Grupo</Label>
               <Select value={form.watch("group_id") || ""} onValueChange={(v) => form.setValue("group_id", v)}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                <SelectTrigger aria-invalid={!!form.formState.errors.group_id}><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                 <SelectContent>{grupos.map((g) => <SelectItem key={g.id} value={g.id}>{g.nombre}</SelectItem>)}</SelectContent>
               </Select>
+              <FieldError name="group_id" form={form} />
             </div>
-            <div>
+            <div className="space-y-1">
               <Label>Padrino/Madrina</Label>
               <Select value={form.watch("padrino_id") || ""} onValueChange={(v) => form.setValue("padrino_id", v)}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                <SelectTrigger aria-invalid={!!form.formState.errors.padrino_id}><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                 <SelectContent>{padrinos.map((p) => <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>)}</SelectContent>
               </Select>
+              <FieldError name="padrino_id" form={form} />
             </div>
             <div className="flex items-center gap-2 pt-6">
               <Checkbox id="bap" checked={form.watch("has_baptism")} onCheckedChange={(c) => form.setValue("has_baptism", !!c)} />
@@ -304,10 +394,10 @@ function ConfirmandosPage() {
               <Checkbox id="com" checked={form.watch("has_communion")} onCheckedChange={(c) => form.setValue("has_communion", !!c)} />
               <Label htmlFor="com">Primera comunión</Label>
             </div>
-            <div className="sm:col-span-2">
+            <div className="sm:col-span-2 space-y-1">
               <Label>Estado</Label>
               <Select value={form.watch("status")} onValueChange={(v) => form.setValue("status", v as ConfirmandoStatus)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger aria-invalid={!!form.formState.errors.status}><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="activo">Activo</SelectItem>
                   <SelectItem value="apto">Apto (requiere bautismo)</SelectItem>
@@ -315,6 +405,7 @@ function ConfirmandosPage() {
                   <SelectItem value="baja">Baja</SelectItem>
                 </SelectContent>
               </Select>
+              <FieldError name="status" form={form} />
             </div>
             <DialogFooter className="sm:col-span-2">
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
