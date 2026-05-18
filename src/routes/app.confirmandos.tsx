@@ -9,8 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { ResponsiveDialog } from "@/components/ResponsiveDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -185,12 +186,12 @@ function ConfirmandosPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      <div className="flex items-end justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-semibold">Confirmandos</h1>
           <p className="text-sm text-muted-foreground">Gestión completa de los jóvenes en formación.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline"><Download className="mr-2 h-4 w-4" />Exportar</Button>
@@ -206,15 +207,15 @@ function ConfirmandosPage() {
       </div>
 
       <Card className="shadow-soft">
-        <CardHeader className="flex flex-row items-center justify-between gap-4">
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4">
           <CardTitle className="text-base">Total: {filtered.length}</CardTitle>
-          <div className="flex gap-2">
-            <div className="relative">
+          <div className="flex flex-wrap gap-2">
+            <div className="relative flex-1 min-w-[180px]">
               <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por nombre o DNI" className="w-64 pl-8" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por nombre o DNI" className="w-full sm:w-64 pl-8" />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos los estados</SelectItem>
                 <SelectItem value="activo">Activo</SelectItem>
@@ -226,7 +227,8 @@ function ConfirmandosPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -288,10 +290,84 @@ function ConfirmandosPage() {
               </TableBody>
             </Table>
           </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-3">
+            {isLoading ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <Card key={i} className="shadow-soft">
+                  <CardContent className="p-4 space-y-2">
+                    <Skeleton className="h-5 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                    <Skeleton className="h-4 w-2/3" />
+                  </CardContent>
+                </Card>
+              ))
+            ) : filtered.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">
+                <div className="flex flex-col items-center gap-2">
+                  <Inbox className="h-8 w-8 opacity-40" />
+                  <p>No hay confirmandos registrados.</p>
+                  <Button size="sm" variant="outline" onClick={openNew}><Plus className="mr-2 h-4 w-4" />Nuevo confirmando</Button>
+                </div>
+              </div>
+            ) : (
+              paginated.map((r) => (
+                <Card key={r.id} className="shadow-soft">
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold">{r.full_name}</span>
+                      <div className="flex gap-1">
+                        <Button size="icon" variant="ghost" aria-label={`Editar confirmando ${r.full_name}`} onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
+                        {isAdmin && (
+                          <DeleteDialog
+                            title={`¿Eliminar a ${r.full_name}?`}
+                            description="Esta acción eliminará permanentemente el registro del confirmando."
+                            trigger={
+                              <Button size="icon" variant="ghost" aria-label={`Eliminar confirmando ${r.full_name}`} disabled={remove.isPending}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            }
+                            onConfirm={() => remove.mutate(r.id)}
+                            isPending={remove.isPending}
+                          />
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-start justify-between gap-2 text-sm">
+                      <span className="text-muted-foreground">DNI</span>
+                      <span>{r.dni ?? "—"}</span>
+                    </div>
+                    <div className="flex items-start justify-between gap-2 text-sm">
+                      <span className="text-muted-foreground">Grupo</span>
+                      <span>{r.grupos?.nombre ?? "—"}</span>
+                    </div>
+                    <div className="flex items-start justify-between gap-2 text-sm">
+                      <span className="text-muted-foreground">Padrino</span>
+                      <span>{r.padrinos?.full_name ?? <span className="text-muted-foreground">Sin asignar</span>}</span>
+                    </div>
+                    <div className="flex items-start justify-between gap-2 text-sm">
+                      <span className="text-muted-foreground">Sacramentos</span>
+                      <div className="flex gap-1">
+                        <Badge variant={r.has_baptism ? "default" : "outline"}>B</Badge>
+                        <Badge variant={r.has_communion ? "default" : "outline"}>C</Badge>
+                      </div>
+                    </div>
+                    <div className="flex items-start justify-between gap-2 text-sm">
+                      <span className="text-muted-foreground">Estado</span>
+                      <Badge variant={r.status === "confirmado" ? "default" : r.status === "apto" ? "secondary" : "outline"}>
+                        {r.status}
+                      </Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
           {filtered.length > pageSize && (
-            <div className="flex items-center justify-between border-t border-border px-6 py-3">
-              <p className="text-sm text-muted-foreground">
-                Mostrando {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filtered.length)} de {filtered.length}
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-6 py-3">
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filtered.length)} / {filtered.length}
               </p>
               <div className="flex items-center gap-2">
                 <Button
@@ -321,99 +397,101 @@ function ConfirmandosPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>{editing ? "Editar confirmando" : "Nuevo confirmando"}</DialogTitle></DialogHeader>
-          <form onSubmit={form.handleSubmit((v) => save.mutate(v))} className="grid gap-4 sm:grid-cols-2">
-            <div className="sm:col-span-2 space-y-1">
-              <Label htmlFor="full_name">Nombre completo <span className="text-destructive">*</span></Label>
-              <Input id="full_name" {...form.register("full_name")} aria-invalid={!!form.formState.errors.full_name} />
-              <FieldError name="full_name" form={form} />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="dni">DNI</Label>
-              <Input id="dni" {...form.register("dni")} aria-invalid={!!form.formState.errors.dni} />
-              <FieldError name="dni" form={form} />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="fecha_nacimiento">Fecha nacimiento</Label>
-              <Input id="fecha_nacimiento" type="date" {...form.register("fecha_nacimiento")} aria-invalid={!!form.formState.errors.fecha_nacimiento} />
-              <FieldError name="fecha_nacimiento" form={form} />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="telefono">Teléfono</Label>
-              <Input id="telefono" {...form.register("telefono")} aria-invalid={!!form.formState.errors.telefono} />
-              <FieldError name="telefono" form={form} />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" {...form.register("email")} aria-invalid={!!form.formState.errors.email} />
-              <FieldError name="email" form={form} />
-            </div>
-            <div className="sm:col-span-2 space-y-1">
-              <Label htmlFor="direccion">Dirección</Label>
-              <Input id="direccion" {...form.register("direccion")} aria-invalid={!!form.formState.errors.direccion} />
-              <FieldError name="direccion" form={form} />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="nombre_padre">Padre</Label>
-              <Input id="nombre_padre" {...form.register("nombre_padre")} aria-invalid={!!form.formState.errors.nombre_padre} />
-              <FieldError name="nombre_padre" form={form} />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="nombre_madre">Madre</Label>
-              <Input id="nombre_madre" {...form.register("nombre_madre")} aria-invalid={!!form.formState.errors.nombre_madre} />
-              <FieldError name="nombre_madre" form={form} />
-            </div>
-            <div className="sm:col-span-2 space-y-1">
-              <Label htmlFor="contacto_padres">Contacto de padres</Label>
-              <Input id="contacto_padres" {...form.register("contacto_padres")} aria-invalid={!!form.formState.errors.contacto_padres} />
-              <FieldError name="contacto_padres" form={form} />
-            </div>
-            <div className="space-y-1">
-              <Label>Grupo</Label>
-              <Select value={form.watch("group_id") || ""} onValueChange={(v) => form.setValue("group_id", v)}>
-                <SelectTrigger aria-invalid={!!form.formState.errors.group_id}><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                <SelectContent>{grupos.map((g) => <SelectItem key={g.id} value={g.id}>{g.nombre}</SelectItem>)}</SelectContent>
-              </Select>
-              <FieldError name="group_id" form={form} />
-            </div>
-            <div className="space-y-1">
-              <Label>Padrino/Madrina</Label>
-              <Select value={form.watch("padrino_id") || ""} onValueChange={(v) => form.setValue("padrino_id", v)}>
-                <SelectTrigger aria-invalid={!!form.formState.errors.padrino_id}><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                <SelectContent>{padrinos.map((p) => <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>)}</SelectContent>
-              </Select>
-              <FieldError name="padrino_id" form={form} />
-            </div>
-            <div className="flex items-center gap-2 pt-6">
-              <Checkbox id="bap" checked={form.watch("has_baptism")} onCheckedChange={(c) => form.setValue("has_baptism", !!c)} />
-              <Label htmlFor="bap">Bautizado</Label>
-            </div>
-            <div className="flex items-center gap-2 pt-6">
-              <Checkbox id="com" checked={form.watch("has_communion")} onCheckedChange={(c) => form.setValue("has_communion", !!c)} />
-              <Label htmlFor="com">Primera comunión</Label>
-            </div>
-            <div className="sm:col-span-2 space-y-1">
-              <Label>Estado</Label>
-              <Select value={form.watch("status")} onValueChange={(v) => form.setValue("status", v as ConfirmandoStatus)}>
-                <SelectTrigger aria-invalid={!!form.formState.errors.status}><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="activo">Activo</SelectItem>
-                  <SelectItem value="apto">Apto (requiere bautismo)</SelectItem>
-                  <SelectItem value="confirmado">Confirmado</SelectItem>
-                  <SelectItem value="baja">Baja</SelectItem>
-                </SelectContent>
-              </Select>
-              <FieldError name="status" form={form} />
-            </div>
-            <DialogFooter className="sm:col-span-2">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button type="submit" disabled={save.isPending}>{save.isPending ? "Guardando…" : "Guardar"}</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <ResponsiveDialog
+        open={open}
+        onOpenChange={setOpen}
+        title={editing ? "Editar confirmando" : "Nuevo confirmando"}
+        className="max-w-2xl"
+      >
+        <form onSubmit={form.handleSubmit((v) => save.mutate(v))} className="grid gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2 space-y-1">
+            <Label htmlFor="full_name">Nombre completo <span className="text-destructive">*</span></Label>
+            <Input id="full_name" {...form.register("full_name")} aria-invalid={!!form.formState.errors.full_name} />
+            <FieldError name="full_name" form={form} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="dni">DNI</Label>
+            <Input id="dni" {...form.register("dni")} aria-invalid={!!form.formState.errors.dni} />
+            <FieldError name="dni" form={form} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="fecha_nacimiento">Fecha nacimiento</Label>
+            <Input id="fecha_nacimiento" type="date" {...form.register("fecha_nacimiento")} aria-invalid={!!form.formState.errors.fecha_nacimiento} />
+            <FieldError name="fecha_nacimiento" form={form} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="telefono">Teléfono</Label>
+            <Input id="telefono" {...form.register("telefono")} aria-invalid={!!form.formState.errors.telefono} />
+            <FieldError name="telefono" form={form} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" type="email" {...form.register("email")} aria-invalid={!!form.formState.errors.email} />
+            <FieldError name="email" form={form} />
+          </div>
+          <div className="sm:col-span-2 space-y-1">
+            <Label htmlFor="direccion">Dirección</Label>
+            <Input id="direccion" {...form.register("direccion")} aria-invalid={!!form.formState.errors.direccion} />
+            <FieldError name="direccion" form={form} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="nombre_padre">Padre</Label>
+            <Input id="nombre_padre" {...form.register("nombre_padre")} aria-invalid={!!form.formState.errors.nombre_padre} />
+            <FieldError name="nombre_padre" form={form} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="nombre_madre">Madre</Label>
+            <Input id="nombre_madre" {...form.register("nombre_madre")} aria-invalid={!!form.formState.errors.nombre_madre} />
+            <FieldError name="nombre_madre" form={form} />
+          </div>
+          <div className="sm:col-span-2 space-y-1">
+            <Label htmlFor="contacto_padres">Contacto de padres</Label>
+            <Input id="contacto_padres" {...form.register("contacto_padres")} aria-invalid={!!form.formState.errors.contacto_padres} />
+            <FieldError name="contacto_padres" form={form} />
+          </div>
+          <div className="space-y-1">
+            <Label>Grupo</Label>
+            <Select value={form.watch("group_id") || ""} onValueChange={(v) => form.setValue("group_id", v)}>
+              <SelectTrigger aria-invalid={!!form.formState.errors.group_id}><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+              <SelectContent>{grupos.map((g) => <SelectItem key={g.id} value={g.id}>{g.nombre}</SelectItem>)}</SelectContent>
+            </Select>
+            <FieldError name="group_id" form={form} />
+          </div>
+          <div className="space-y-1">
+            <Label>Padrino/Madrina</Label>
+            <Select value={form.watch("padrino_id") || ""} onValueChange={(v) => form.setValue("padrino_id", v)}>
+              <SelectTrigger aria-invalid={!!form.formState.errors.padrino_id}><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+              <SelectContent>{padrinos.map((p) => <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>)}</SelectContent>
+            </Select>
+            <FieldError name="padrino_id" form={form} />
+          </div>
+          <div className="flex items-center gap-2 pt-6">
+            <Checkbox id="bap" checked={form.watch("has_baptism")} onCheckedChange={(c) => form.setValue("has_baptism", !!c)} />
+            <Label htmlFor="bap">Bautizado</Label>
+          </div>
+          <div className="flex items-center gap-2 pt-6">
+            <Checkbox id="com" checked={form.watch("has_communion")} onCheckedChange={(c) => form.setValue("has_communion", !!c)} />
+            <Label htmlFor="com">Primera comunión</Label>
+          </div>
+          <div className="sm:col-span-2 space-y-1">
+            <Label>Estado</Label>
+            <Select value={form.watch("status")} onValueChange={(v) => form.setValue("status", v as ConfirmandoStatus)}>
+              <SelectTrigger aria-invalid={!!form.formState.errors.status}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="activo">Activo</SelectItem>
+                <SelectItem value="apto">Apto (requiere bautismo)</SelectItem>
+                <SelectItem value="confirmado">Confirmado</SelectItem>
+                <SelectItem value="baja">Baja</SelectItem>
+              </SelectContent>
+            </Select>
+            <FieldError name="status" form={form} />
+          </div>
+          <div className="flex flex-wrap gap-2 justify-end mt-4 sm:col-span-2">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button type="submit" disabled={save.isPending}>{save.isPending ? "Guardando…" : "Guardar"}</Button>
+          </div>
+        </form>
+      </ResponsiveDialog>
     </div>
   );
 }

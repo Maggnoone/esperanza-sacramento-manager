@@ -93,7 +93,7 @@ function ReportesPage() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="flex gap-2">
+            <CardContent className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={() => run("xlsx", r)}><FileSpreadsheet className="mr-2 h-4 w-4" />Excel</Button>
               <Button size="sm" variant="outline" onClick={() => run("pdf", r)}><FileText className="mr-2 h-4 w-4" />PDF</Button>
               <Button size="sm" variant="outline" onClick={() => run("csv", r)}><FileType className="mr-2 h-4 w-4" />CSV</Button>

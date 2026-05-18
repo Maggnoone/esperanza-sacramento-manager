@@ -110,11 +110,11 @@ function AsistenciaPage() {
 
       {charlaId && (
         <Card className="shadow-soft">
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
             <CardTitle className="text-base flex items-center gap-2"><ClipboardCheck className="h-4 w-4" /> Confirmandos</CardTitle>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary">{presentes} / {confirmandos.length} presentes</Badge>
-              <div className="flex items-center gap-1">
+              <div className="flex flex-wrap items-center gap-1">
                 <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={!exportData.length} className="px-2"><Download className="h-3 w-3 mr-1" />CSV</Button>
                 <Button variant="outline" size="sm" onClick={handleExportXLSX} disabled={!exportData.length} className="px-2"><FileSpreadsheet className="h-3 w-3 mr-1" />Excel</Button>
                 <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={!exportData.length} className="px-2"><FileText className="h-3 w-3 mr-1" />PDF</Button>
