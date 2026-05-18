@@ -17,8 +17,9 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { formatCurrency, formatDate, exportToXLSX, exportToPDF } from "@/lib/export";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useConfirmandosSimple, usePagos, useCostoRetiro } from "@/hooks/use-data";
+import { useConfirmandosSimple, usePagos, useCostoPorConcepto } from "@/hooks/use-data";
 import type { Confirmando, PaymentMethod } from "@/integrations/supabase/types";
+import { buildBalance, buildTotals } from "@/lib/balances";
 
 export const Route = createFileRoute("/app/pagos")({ component: PagosPage });
 
@@ -40,31 +41,29 @@ function PagosPage() {
 
   const { data: confirmandos = [], isLoading: loadingConfirmandos } = useConfirmandosSimple();
   const { data: pagos = [], isLoading: loadingPagos } = usePagos();
-  const { data: costo } = useCostoRetiro();
+  const { data: costoRetiro } = useCostoPorConcepto("retiro");
 
-  const balances = useMemo<BalanceRow[]>(() => {
-    const map = new Map<string, number>();
-    pagos.forEach((p) => map.set(p.confirmando_id, (map.get(p.confirmando_id) ?? 0) + Number(p.monto)));
-    return confirmandos.map((c) => {
-      const abonado = map.get(c.id) ?? 0;
-      const total = Number(costo?.monto ?? 0);
-      return { id: c.id, full_name: c.full_name, abonado, pendiente: Math.max(total - abonado, 0), pct: total ? Math.min(100, (abonado / total) * 100) : 0 };
-    });
-  }, [pagos, confirmandos, costo]);
+  const retiroMonto = Number(costoRetiro?.monto ?? 0);
 
-  const totalRecaudado = pagos.reduce((s, p) => s + Number(p.monto), 0);
-  const metaTotal = Number(costo?.monto ?? 0) * confirmandos.length;
-  const pendienteTotal = Math.max(metaTotal - totalRecaudado, 0);
+  const balances = useMemo<BalanceRow[]>(
+    () => buildBalance(pagos, confirmandos, retiroMonto),
+    [pagos, confirmandos, retiroMonto]
+  );
+
+  const { totalRecaudado, metaTotal, pendienteTotal } = useMemo(
+    () => buildTotals(balances, retiroMonto, confirmandos.length),
+    [balances, retiroMonto, confirmandos.length]
+  );
 
   const saveCosto = useMutation({
     mutationFn: async () => {
       const monto = Number(costoMonto);
       if (!monto || monto < 0) throw new Error("Monto inválido");
-      if (costo) {
-        const { error } = await supabase.from("costo_retiro").update({ monto }).eq("id", costo.id);
+      if (costoRetiro) {
+        const { error } = await supabase.from("costo_retiro").update({ monto }).eq("id", costoRetiro.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("costo_retiro").insert({ monto, activo: true });
+        const { error } = await supabase.from("costo_retiro").insert({ monto, activo: true, concepto: "retiro" });
         if (error) throw error;
       }
     },
@@ -92,7 +91,7 @@ function PagosPage() {
   });
 
   const handleExport = (kind: "xlsx" | "pdf") => {
-    const data = balances.map((b) => ({ Confirmando: b.full_name, Total: Number(costo?.monto ?? 0), Abonado: b.abonado, Pendiente: b.pendiente, Cumplimiento: `${Math.round(b.pct)}%` }));
+    const data = balances.map((b) => ({ Confirmando: b.full_name, Total: costoMonto, Abonado: b.abonado, Pendiente: b.pendiente, Cumplimiento: `${Math.round(b.pct)}%` }));
     if (kind === "xlsx") exportToXLSX(data, "pagos-retiro", "Pagos");
     else exportToPDF("Estado de Pagos del Retiro", Object.keys(data[0] ?? { x: 1 }), data.map((d) => Object.values(d) as (string | number)[]), "pagos-retiro", `Recaudado: ${formatCurrency(totalRecaudado)} · Pendiente: ${formatCurrency(pendienteTotal)}`);
   };
@@ -112,8 +111,8 @@ function PagosPage() {
               <DropdownMenuItem onClick={() => handleExport("pdf")}>PDF</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button variant="outline" onClick={() => { setCostoMonto(String(costo?.monto ?? "")); setOpenCosto(true); }}>
-            <Wallet className="mr-2 h-4 w-4" />Costo: {formatCurrency(costo?.monto ?? 0)}
+          <Button variant="outline" onClick={() => { setCostoMonto(String(costoRetiro?.monto ?? "")); setOpenCosto(true); }}>
+            <Wallet className="mr-2 h-4 w-4" />Costo: {formatCurrency(costoRetiro?.monto ?? 0)}
           </Button>
           <Button onClick={() => setOpenPago(true)}><Plus className="mr-2 h-4 w-4" />Registrar pago</Button>
         </div>
