@@ -235,6 +235,7 @@ export type Database = {
       costo_retiro: {
         Row: {
           activo: boolean
+          concepto: string
           created_at: string
           descripcion: string
           id: string
@@ -242,6 +243,7 @@ export type Database = {
         }
         Insert: {
           activo?: boolean
+          concepto?: string
           created_at?: string
           descripcion?: string
           id?: string
@@ -249,6 +251,7 @@ export type Database = {
         }
         Update: {
           activo?: boolean
+          concepto?: string
           created_at?: string
           descripcion?: string
           id?: string
@@ -362,6 +365,7 @@ export type Database = {
       }
       pagos: {
         Row: {
+          concepto: string
           confirmando_id: string
           created_at: string
           fecha: string
@@ -373,6 +377,7 @@ export type Database = {
           registered_by: string | null
         }
         Insert: {
+          concepto?: string
           confirmando_id: string
           created_at?: string
           fecha?: string
@@ -384,6 +389,7 @@ export type Database = {
           registered_by?: string | null
         }
         Update: {
+          concepto?: string
           confirmando_id?: string
           created_at?: string
           fecha?: string

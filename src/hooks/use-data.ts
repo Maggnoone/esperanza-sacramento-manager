@@ -193,16 +193,157 @@ export function usePagos() {
 /* ── Costo retiro ── */
 
 export function useCostoRetiro() {
-  return useQuery<CostoRetiro | null>({
+  return useQuery<CostoRetiro[]>({
     queryKey: ["costo-retiro"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("costo_retiro")
         .select("*")
+        .eq("activo", true);
+      if (error) throw error;
+      return (data ?? []) as CostoRetiro[];
+    },
+  });
+}
+
+export function useCostoPorConcepto(concepto: string) {
+  return useQuery<CostoRetiro | null>({
+    queryKey: ["costo-retiro", concepto],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("costo_retiro")
+        .select("*")
         .eq("activo", true)
+        .eq("concepto", concepto)
         .maybeSingle();
       if (error) throw error;
       return data as CostoRetiro | null;
+    },
+  });
+}
+
+/* ── Pagos por concepto ── */
+
+export function usePagosPorConcepto(concepto: string) {
+  return useQuery<PagoWithRelations[]>({
+    queryKey: ["pagos", concepto],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pagos")
+        .select("*, confirmandos(full_name)")
+        .eq("concepto", concepto)
+        .order("fecha", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as PagoWithRelations[];
+    },
+  });
+}
+
+/* ── Asistencia resumida ── */
+
+export interface AsistenciaResumen {
+  charla_id: string;
+  titulo: string;
+  fecha: string;
+  tipo: string;
+  grupo: string | null;
+  total_confirmandos: number;
+  presentes: number;
+  ausentes: number;
+  pct: number;
+}
+
+export function useAsistenciaResumen() {
+  return useQuery<AsistenciaResumen[]>({
+    queryKey: ["asistencia-resumen"],
+    queryFn: async () => {
+      const { data: charlas, error: charlaErr } = await supabase
+        .from("charlas")
+        .select("*, grupos(nombre)")
+        .order("fecha", { ascending: false });
+      if (charlaErr) throw charlaErr;
+
+      const { data: asistencia, error: asistErr } = await supabase
+        .from("asistencia")
+        .select("*");
+      if (asistErr) throw asistErr;
+
+      return (charlas ?? []).map((c) => {
+        const charla = c as Charla & { grupos: { nombre: string | null } | null };
+        const asistencias = (asistencia ?? []).filter((a) => a.charla_id === charla.id);
+        const presentes = asistencias.filter((a) => a.presente).length;
+        return {
+          charla_id: charla.id,
+          titulo: charla.titulo,
+          fecha: charla.fecha,
+          tipo: charla.tipo,
+          grupo: charla.grupos?.nombre ?? null,
+          total_confirmandos: asistencias.length,
+          presentes,
+          ausentes: asistencias.length - presentes,
+          pct: asistencias.length ? Math.round((presentes / asistencias.length) * 100) : 0,
+        };
+      });
+    },
+  });
+}
+
+export interface AsistenciaPorConfirmando {
+  confirmando_id: string;
+  full_name: string;
+  grupo: string | null;
+  total_sesiones: number;
+  asistidas: number;
+  ausencias: number;
+  pct: number;
+}
+
+export function useAsistenciaPorConfirmando() {
+  return useQuery<AsistenciaPorConfirmando[]>({
+    queryKey: ["asistencia-por-confirmando"],
+    queryFn: async () => {
+      const { data: confirmandos, error: cErr } = await supabase
+        .from("confirmandos")
+        .select("id, full_name, group_id, grupos(nombre)")
+        .neq("status", "baja")
+        .order("full_name");
+      if (cErr) throw cErr;
+
+      const { data: charlas, error: chErr } = await supabase
+        .from("charlas")
+        .select("id, group_id");
+      if (chErr) throw chErr;
+
+      const { data: asistencia, error: aErr } = await supabase
+        .from("asistencia")
+        .select("*");
+      if (aErr) throw aErr;
+
+      const charlaMap = new Map((charlas ?? []).map((c) => [c.id, c.group_id]));
+
+      return (confirmandos ?? []).map((c) => {
+        const asistencias = (asistencia ?? []).filter(
+          (a) => a.confirmando_id === c.id,
+        );
+        const asistidas = asistencias.filter((a) => a.presente).length;
+        // Only count charlas from the same group as the confirmando
+        const relevant = asistencias.filter((a) => {
+          const charlaGroupId = charlaMap.get(a.charla_id);
+          return charlaGroupId === c.group_id || charlaGroupId === null;
+        });
+        const total = relevant.length;
+        const fullName = c.full_name;
+        const grupo = (c as unknown as { grupos: { nombre: string | null } | null }).grupos?.nombre ?? null;
+        return {
+          confirmando_id: c.id,
+          full_name: fullName,
+          grupo,
+          total_sesiones: total,
+          asistidas,
+          ausencias: total - asistidas,
+          pct: total ? Math.round((asistidas / total) * 100) : 0,
+        };
+      });
     },
   });
 }
