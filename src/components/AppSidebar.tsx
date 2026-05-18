@@ -28,11 +28,15 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const collapsed = state === "collapsed";
   const currentPath = useRouterState({ select: (r) => r.location.pathname });
   const { user, roles, signOut, canSeePagos, isAdmin } = useAuth();
   const navigate = useNavigate();
+
+  const handleNav = () => {
+    if (isMobile) setOpenMobile(false);
+  };
 
   const isActive = (path: string) =>
     path === "/app" ? currentPath === "/app" : currentPath.startsWith(path);
@@ -57,13 +61,14 @@ export function AppSidebar() {
 
   const handleLogout = async () => {
     await signOut();
+    if (isMobile) setOpenMobile(false);
     navigate({ to: "/auth" });
   };
 
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border">
-        <Link to="/app" className="flex items-center gap-2 px-2 py-2">
+        <Link to="/app" className="flex items-center gap-2 px-2 py-2" onClick={handleNav}>
           <img
             src="/src/assets/logoESP.png"
             alt="Esperanza Viva"
@@ -88,7 +93,7 @@ export function AppSidebar() {
               {mainItems.map((item) => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                    <Link to={item.url}>
+                    <Link to={item.url} onClick={handleNav}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
                     </Link>
@@ -106,7 +111,7 @@ export function AppSidebar() {
               {formacionItems.map((item) => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                    <Link to={item.url}>
+                    <Link to={item.url} onClick={handleNav}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
                     </Link>
@@ -124,7 +129,7 @@ export function AppSidebar() {
               {adminItems.map((item) => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                    <Link to={item.url}>
+                    <Link to={item.url} onClick={handleNav}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
                     </Link>
