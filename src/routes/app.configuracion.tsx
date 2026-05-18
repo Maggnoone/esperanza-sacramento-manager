@@ -1,5 +1,5 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { useGrupos, useProfiles, useUserRoles } from "@/hooks/use-data";
+import type { UserRole, AppRole, GrupoInsert } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/app/configuracion")({ component: ConfigPage });
 
@@ -22,31 +24,38 @@ function ConfigPage() {
   const [openGrupo, setOpenGrupo] = useState(false);
   const [grupoForm, setGrupoForm] = useState({ nombre: "", anio: new Date().getFullYear(), descripcion: "" });
   const [openRol, setOpenRol] = useState(false);
-  const [rolForm, setRolForm] = useState({ user_id: "", role: "catequista" });
+  const [rolForm, setRolForm] = useState({ user_id: "", role: "catequista" as AppRole });
 
   if (!isAdmin) return <Navigate to="/app" />;
 
-  const { data: grupos = [] } = useQuery({ queryKey: ["cfg-grupos"], queryFn: async () => (await supabase.from("grupos").select("*").order("anio", { ascending: false })).data ?? [] });
-  const { data: profiles = [] } = useQuery({ queryKey: ["cfg-profiles"], queryFn: async () => (await supabase.from("profiles").select("*").order("full_name")).data ?? [] });
-  const { data: roles = [] } = useQuery({ queryKey: ["cfg-roles"], queryFn: async () => (await supabase.from("user_roles").select("*")).data ?? [] });
+  const { data: grupos = [] } = useGrupos();
+  const { data: profiles = [] } = useProfiles();
+  const { data: roles = [] } = useUserRoles();
 
-  const rolesByUser = roles.reduce((acc: Record<string, string[]>, r: any) => { (acc[r.user_id] ||= []).push(r.role); return acc; }, {});
+  const rolesByUser = roles.reduce<Record<string, string[]>>((acc, r) => { (acc[r.user_id] ||= []).push(r.role); return acc; }, {});
 
   const saveGrupo = useMutation({
-    mutationFn: async () => { const { error } = await supabase.from("grupos").insert({ nombre: grupoForm.nombre, anio: Number(grupoForm.anio), descripcion: grupoForm.descripcion || null }); if (error) throw error; },
-    onSuccess: () => { toast.success("Grupo creado"); qc.invalidateQueries({ queryKey: ["cfg-grupos"] }); setOpenGrupo(false); setGrupoForm({ nombre: "", anio: new Date().getFullYear(), descripcion: "" }); },
-    onError: (e: any) => toast.error(e.message),
+    mutationFn: async () => {
+      const payload: GrupoInsert = { nombre: grupoForm.nombre, anio: Number(grupoForm.anio), descripcion: grupoForm.descripcion || null };
+      const { error } = await supabase.from("grupos").insert(payload); if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Grupo creado"); qc.invalidateQueries({ queryKey: ["grupos"] }); setOpenGrupo(false); setGrupoForm({ nombre: "", anio: new Date().getFullYear(), descripcion: "" }); },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const saveRol = useMutation({
-    mutationFn: async () => { const { error } = await supabase.from("user_roles").insert({ user_id: rolForm.user_id, role: rolForm.role as any }); if (error) throw error; },
-    onSuccess: () => { toast.success("Rol asignado"); qc.invalidateQueries({ queryKey: ["cfg-roles"] }); setOpenRol(false); },
-    onError: (e: any) => toast.error(e.message),
+    mutationFn: async () => {
+      const payload: UserRole = { user_id: rolForm.user_id, role: rolForm.role, id: "", created_at: "" };
+      const { error } = await supabase.from("user_roles").insert(payload); if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Rol asignado"); qc.invalidateQueries({ queryKey: ["user-roles"] }); setOpenRol(false); },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const removeRol = useMutation({
     mutationFn: async (id: string) => { const { error } = await supabase.from("user_roles").delete().eq("id", id); if (error) throw error; },
-    onSuccess: () => { toast.success("Eliminado"); qc.invalidateQueries({ queryKey: ["cfg-roles"] }); },
+    onSuccess: () => { toast.success("Eliminado"); qc.invalidateQueries({ queryKey: ["user-roles"] }); },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   return (
@@ -65,7 +74,7 @@ function ConfigPage() {
           <Table>
             <TableHeader><TableRow><TableHead>Nombre</TableHead><TableHead>Año</TableHead><TableHead>Descripción</TableHead></TableRow></TableHeader>
             <TableBody>
-              {grupos.map((g: any) => <TableRow key={g.id}><TableCell className="font-medium">{g.nombre}</TableCell><TableCell>{g.anio}</TableCell><TableCell className="text-muted-foreground">{g.descripcion ?? "—"}</TableCell></TableRow>)}
+              {grupos.map((g) => <TableRow key={g.id}><TableCell className="font-medium">{g.nombre}</TableCell><TableCell>{g.anio}</TableCell><TableCell className="text-muted-foreground">{g.descripcion ?? "—"}</TableCell></TableRow>)}
             </TableBody>
           </Table>
         </CardContent>
@@ -80,13 +89,13 @@ function ConfigPage() {
           <Table>
             <TableHeader><TableRow><TableHead>Usuario</TableHead><TableHead>Email</TableHead><TableHead>Roles</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
             <TableBody>
-              {profiles.map((p: any) => (
+              {profiles.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell className="font-medium">{p.full_name || "—"}</TableCell>
                   <TableCell>{p.email}</TableCell>
-                  <TableCell><div className="flex gap-1 flex-wrap">{(rolesByUser[p.id] ?? []).map((r: string) => <Badge key={r} variant="secondary">{r}</Badge>)}</div></TableCell>
+                  <TableCell><div className="flex gap-1 flex-wrap">{(rolesByUser[p.id] ?? []).map((r) => <Badge key={r} variant="secondary">{r}</Badge>)}</div></TableCell>
                   <TableCell className="text-right">
-                    {roles.filter((r: any) => r.user_id === p.id).map((r: any) => (
+                    {roles.filter((r) => r.user_id === p.id).map((r) => (
                       <Button key={r.id} size="icon" variant="ghost" title={`Quitar ${r.role}`} onClick={() => removeRol.mutate(r.id)}><Trash2 className="h-3 w-3 text-destructive" /></Button>
                     ))}
                   </TableCell>
@@ -116,11 +125,11 @@ function ConfigPage() {
             <div><Label>Usuario</Label>
               <Select value={rolForm.user_id} onValueChange={(v) => setRolForm({ ...rolForm, user_id: v })}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                <SelectContent>{profiles.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.email}</SelectItem>)}</SelectContent>
+                <SelectContent>{profiles.map((p) => <SelectItem key={p.id} value={p.id}>{p.email}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div><Label>Rol</Label>
-              <Select value={rolForm.role} onValueChange={(v) => setRolForm({ ...rolForm, role: v })}>
+              <Select value={rolForm.role} onValueChange={(v) => setRolForm({ ...rolForm, role: v as AppRole })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin">Admin</SelectItem>

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -10,15 +10,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Plus, Search, Download, Pencil, Trash2, FileSpreadsheet, FileText, FileType } from "lucide-react";
 import { toast } from "sonner";
-import { exportToCSV, exportToPDF, exportToXLSX, formatDate } from "@/lib/export";
+import { exportToCSV, exportToPDF, exportToXLSX } from "@/lib/export";
 import { useAuth } from "@/hooks/use-auth";
+import { useConfirmandos, useGruposSimple, usePadrinosSimple } from "@/hooks/use-data";
+import type { ConfirmandoWithRelations, ConfirmandoInsert, ConfirmandoStatus } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/app/confirmandos")({
   component: ConfirmandosPage,
@@ -50,28 +52,11 @@ function ConfirmandosPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<any | null>(null);
+  const [editing, setEditing] = useState<ConfirmandoWithRelations | null>(null);
 
-  const { data: rows = [], isLoading } = useQuery({
-    queryKey: ["confirmandos"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("confirmandos")
-        .select("*, grupos(nombre), padrinos(full_name)")
-        .order("full_name");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-  const { data: grupos = [] } = useQuery({
-    queryKey: ["grupos"],
-    queryFn: async () => (await supabase.from("grupos").select("id, nombre")).data ?? [],
-  });
-  const { data: padrinos = [] } = useQuery({
-    queryKey: ["padrinos-list"],
-    queryFn: async () => (await supabase.from("padrinos").select("id, full_name").order("full_name")).data ?? [],
-  });
+  const { data: rows = [], isLoading } = useConfirmandos();
+  const { data: grupos = [] } = useGruposSimple();
+  const { data: padrinos = [] } = usePadrinosSimple();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -83,7 +68,8 @@ function ConfirmandosPage() {
     form.reset({ full_name: "", has_baptism: false, has_communion: false, status: "activo", dni: "", telefono: "", email: "", direccion: "", nombre_padre: "", nombre_madre: "", contacto_padres: "", group_id: "", padrino_id: "", notas: "", fecha_nacimiento: "" });
     setOpen(true);
   };
-  const openEdit = (r: any) => {
+
+  const openEdit = (r: ConfirmandoWithRelations) => {
     setEditing(r);
     form.reset({
       full_name: r.full_name ?? "",
@@ -105,22 +91,27 @@ function ConfirmandosPage() {
     setOpen(true);
   };
 
+  const buildPayload = (values: FormValues): ConfirmandoInsert => ({
+    full_name: values.full_name,
+    dni: values.dni || null,
+    fecha_nacimiento: values.fecha_nacimiento || null,
+    telefono: values.telefono || null,
+    email: values.email || null,
+    direccion: values.direccion || null,
+    nombre_padre: values.nombre_padre || null,
+    nombre_madre: values.nombre_madre || null,
+    contacto_padres: values.contacto_padres || null,
+    has_baptism: values.has_baptism,
+    has_communion: values.has_communion,
+    status: values.status as ConfirmandoStatus,
+    group_id: values.group_id || null,
+    padrino_id: values.padrino_id || null,
+    notas: values.notas || null,
+  });
+
   const save = useMutation({
     mutationFn: async (values: FormValues) => {
-      const payload: any = {
-        ...values,
-        dni: values.dni || null,
-        fecha_nacimiento: values.fecha_nacimiento || null,
-        telefono: values.telefono || null,
-        email: values.email || null,
-        direccion: values.direccion || null,
-        nombre_padre: values.nombre_padre || null,
-        nombre_madre: values.nombre_madre || null,
-        contacto_padres: values.contacto_padres || null,
-        group_id: values.group_id || null,
-        padrino_id: values.padrino_id || null,
-        notas: values.notas || null,
-      };
+      const payload = buildPayload(values);
       if (editing) {
         const { error } = await supabase.from("confirmandos").update(payload).eq("id", editing.id);
         if (error) throw error;
@@ -134,7 +125,7 @@ function ConfirmandosPage() {
       qc.invalidateQueries({ queryKey: ["confirmandos"] });
       setOpen(false);
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const remove = useMutation({
@@ -146,18 +137,18 @@ function ConfirmandosPage() {
       toast.success("Eliminado");
       qc.invalidateQueries({ queryKey: ["confirmandos"] });
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
-  const filtered = rows.filter((r: any) => {
+  const filtered = rows.filter((r) => {
     const s = search.toLowerCase();
-    const matchSearch = !s || r.full_name?.toLowerCase().includes(s) || r.dni?.toLowerCase().includes(s);
+    const matchSearch = !s || r.full_name?.toLowerCase().includes(s) || (r.dni ?? "").toLowerCase().includes(s);
     const matchStatus = statusFilter === "all" || r.status === statusFilter;
     return matchSearch && matchStatus;
   });
 
   const exportData = () =>
-    filtered.map((r: any) => ({
+    filtered.map((r) => ({
       Nombre: r.full_name,
       DNI: r.dni ?? "",
       Grupo: r.grupos?.nombre ?? "",
@@ -245,7 +236,7 @@ function ConfirmandosPage() {
                   <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Cargando…</TableCell></TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Sin registros</TableCell></TableRow>
-                ) : filtered.map((r: any) => (
+                ) : filtered.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell className="font-medium">{r.full_name}</TableCell>
                     <TableCell>{r.dni ?? "—"}</TableCell>
@@ -295,14 +286,14 @@ function ConfirmandosPage() {
               <Label>Grupo</Label>
               <Select value={form.watch("group_id") || ""} onValueChange={(v) => form.setValue("group_id", v)}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                <SelectContent>{grupos.map((g: any) => <SelectItem key={g.id} value={g.id}>{g.nombre}</SelectItem>)}</SelectContent>
+                <SelectContent>{grupos.map((g) => <SelectItem key={g.id} value={g.id}>{g.nombre}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div>
               <Label>Padrino/Madrina</Label>
               <Select value={form.watch("padrino_id") || ""} onValueChange={(v) => form.setValue("padrino_id", v)}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                <SelectContent>{padrinos.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>)}</SelectContent>
+                <SelectContent>{padrinos.map((p) => <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="flex items-center gap-2 pt-6">
@@ -315,7 +306,7 @@ function ConfirmandosPage() {
             </div>
             <div className="sm:col-span-2">
               <Label>Estado</Label>
-              <Select value={form.watch("status")} onValueChange={(v: any) => form.setValue("status", v)}>
+              <Select value={form.watch("status")} onValueChange={(v) => form.setValue("status", v as ConfirmandoStatus)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="activo">Activo</SelectItem>

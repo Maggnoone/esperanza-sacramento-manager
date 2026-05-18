@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -18,6 +18,8 @@ import { Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDateTime } from "@/lib/export";
 import { useAuth } from "@/hooks/use-auth";
+import { useCharlas } from "@/hooks/use-data";
+import type { Charla, CharlaInsert, SessionType } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/app/charlas")({ component: CharlasPage });
 
@@ -36,12 +38,9 @@ function CharlasPage() {
   const qc = useQueryClient();
   const { isAdmin } = useAuth();
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<any | null>(null);
+  const [editing, setEditing] = useState<Charla | null>(null);
 
-  const { data: rows = [] } = useQuery({
-    queryKey: ["charlas"],
-    queryFn: async () => (await supabase.from("charlas").select("*").order("fecha", { ascending: false })).data ?? [],
-  });
+  const { data: rows = [] } = useCharlas();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -49,21 +48,44 @@ function CharlasPage() {
   });
 
   const openNew = () => { setEditing(null); form.reset({ titulo: "", descripcion: "", duracion_min: 60, tipo: "charla", ponente: "", ubicacion: "", fecha: new Date().toISOString().slice(0, 16) }); setOpen(true); };
-  const openEdit = (r: any) => { setEditing(r); form.reset({ ...r, fecha: new Date(r.fecha).toISOString().slice(0, 16), descripcion: r.descripcion ?? "", ponente: r.ponente ?? "", ubicacion: r.ubicacion ?? "" }); setOpen(true); };
+  const openEdit = (r: Charla) => {
+    setEditing(r);
+    form.reset({
+      titulo: r.titulo,
+      descripcion: r.descripcion ?? "",
+      fecha: new Date(r.fecha).toISOString().slice(0, 16),
+      duracion_min: r.duracion_min ?? 60,
+      ponente: r.ponente ?? "",
+      ubicacion: r.ubicacion ?? "",
+      tipo: r.tipo,
+    });
+    setOpen(true);
+  };
+
+  const buildPayload = (v: FormValues): CharlaInsert => ({
+    titulo: v.titulo,
+    fecha: new Date(v.fecha).toISOString(),
+    duracion_min: v.duracion_min,
+    tipo: v.tipo as SessionType,
+    descripcion: v.descripcion || null,
+    ponente: v.ponente || null,
+    ubicacion: v.ubicacion || null,
+  });
 
   const save = useMutation({
     mutationFn: async (v: FormValues) => {
-      const payload: any = { ...v, fecha: new Date(v.fecha).toISOString(), descripcion: v.descripcion || null, ponente: v.ponente || null, ubicacion: v.ubicacion || null };
+      const payload = buildPayload(v);
       const { error } = editing ? await supabase.from("charlas").update(payload).eq("id", editing.id) : await supabase.from("charlas").insert(payload);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Guardado"); qc.invalidateQueries({ queryKey: ["charlas"] }); setOpen(false); },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const remove = useMutation({
     mutationFn: async (id: string) => { const { error } = await supabase.from("charlas").delete().eq("id", id); if (error) throw error; },
     onSuccess: () => { toast.success("Eliminada"); qc.invalidateQueries({ queryKey: ["charlas"] }); },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const tipoColor: Record<string, "default" | "secondary" | "outline"> = { retiro: "default", convivencia: "secondary", charla: "outline", celebracion: "default" };
@@ -86,7 +108,7 @@ function CharlasPage() {
             <TableBody>
               {rows.length === 0 ? (
                 <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sin sesiones programadas</TableCell></TableRow>
-              ) : rows.map((r: any) => (
+              ) : rows.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell>{formatDateTime(r.fecha)}</TableCell>
                   <TableCell className="font-medium">{r.titulo}</TableCell>
@@ -113,7 +135,7 @@ function CharlasPage() {
             <div><Label>Duración (min)</Label><Input type="number" {...form.register("duracion_min")} /></div>
             <div>
               <Label>Tipo</Label>
-              <Select value={form.watch("tipo")} onValueChange={(v: any) => form.setValue("tipo", v)}>
+              <Select value={form.watch("tipo")} onValueChange={(v) => form.setValue("tipo", v as SessionType)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="charla">Charla</SelectItem>

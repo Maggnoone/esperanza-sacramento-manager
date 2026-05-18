@@ -1,5 +1,5 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,11 +15,19 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { formatCurrency, formatDate, exportToXLSX, exportToPDF } from "@/lib/export";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useConfirmandosSimple, usePagos, useCostoRetiro } from "@/hooks/use-data";
+import type { Confirmando, PaymentMethod } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/app/pagos")({ component: PagosPage });
 
+interface BalanceRow extends Pick<Confirmando, "id" | "full_name"> {
+  abonado: number;
+  pendiente: number;
+  pct: number;
+}
+
 function PagosPage() {
-  const { canSeePagos, isAdmin } = useAuth();
+  const { canSeePagos } = useAuth();
   const qc = useQueryClient();
   const [openCosto, setOpenCosto] = useState(false);
   const [openPago, setOpenPago] = useState(false);
@@ -28,32 +36,21 @@ function PagosPage() {
 
   if (!canSeePagos) return <Navigate to="/app" />;
 
-  const { data: confirmandos = [] } = useQuery({
-    queryKey: ["confirmandos-pagos"],
-    queryFn: async () => (await supabase.from("confirmandos").select("id, full_name").order("full_name")).data ?? [],
-  });
+  const { data: confirmandos = [] } = useConfirmandosSimple();
+  const { data: pagos = [] } = usePagos();
+  const { data: costo } = useCostoRetiro();
 
-  const { data: pagos = [] } = useQuery({
-    queryKey: ["pagos"],
-    queryFn: async () => (await supabase.from("pagos").select("*, confirmandos(full_name)").order("fecha", { ascending: false })).data ?? [],
-  });
-
-  const { data: costo } = useQuery({
-    queryKey: ["costo-retiro"],
-    queryFn: async () => (await supabase.from("costo_retiro").select("*").eq("activo", true).maybeSingle()).data,
-  });
-
-  const balances = useMemo(() => {
+  const balances = useMemo<BalanceRow[]>(() => {
     const map = new Map<string, number>();
-    pagos.forEach((p: any) => map.set(p.confirmando_id, (map.get(p.confirmando_id) ?? 0) + Number(p.monto)));
-    return confirmandos.map((c: any) => {
+    pagos.forEach((p) => map.set(p.confirmando_id, (map.get(p.confirmando_id) ?? 0) + Number(p.monto)));
+    return confirmandos.map((c) => {
       const abonado = map.get(c.id) ?? 0;
       const total = Number(costo?.monto ?? 0);
-      return { ...c, abonado, pendiente: Math.max(total - abonado, 0), pct: total ? Math.min(100, (abonado / total) * 100) : 0 };
+      return { id: c.id, full_name: c.full_name, abonado, pendiente: Math.max(total - abonado, 0), pct: total ? Math.min(100, (abonado / total) * 100) : 0 };
     });
   }, [pagos, confirmandos, costo]);
 
-  const totalRecaudado = pagos.reduce((s: number, p: any) => s + Number(p.monto), 0);
+  const totalRecaudado = pagos.reduce((s, p) => s + Number(p.monto), 0);
   const metaTotal = Number(costo?.monto ?? 0) * confirmandos.length;
   const pendienteTotal = Math.max(metaTotal - totalRecaudado, 0);
 
@@ -70,7 +67,7 @@ function PagosPage() {
       }
     },
     onSuccess: () => { toast.success("Costo actualizado"); qc.invalidateQueries({ queryKey: ["costo-retiro"] }); setOpenCosto(false); },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const savePago = useMutation({
@@ -81,7 +78,7 @@ function PagosPage() {
       const { error } = await supabase.from("pagos").insert({
         confirmando_id: pagoForm.confirmando_id,
         monto,
-        metodo: pagoForm.metodo as any,
+        metodo: pagoForm.metodo as PaymentMethod,
         referencia: pagoForm.referencia || null,
         fecha: pagoForm.fecha,
         registered_by: u.user?.id,
@@ -89,13 +86,13 @@ function PagosPage() {
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Pago registrado"); qc.invalidateQueries({ queryKey: ["pagos"] }); setOpenPago(false); setPagoForm({ confirmando_id: "", monto: "", metodo: "efectivo", referencia: "", fecha: new Date().toISOString().slice(0, 10) }); },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const handleExport = (kind: "xlsx" | "pdf") => {
     const data = balances.map((b) => ({ Confirmando: b.full_name, Total: Number(costo?.monto ?? 0), Abonado: b.abonado, Pendiente: b.pendiente, Cumplimiento: `${Math.round(b.pct)}%` }));
     if (kind === "xlsx") exportToXLSX(data, "pagos-retiro", "Pagos");
-    else exportToPDF("Estado de Pagos del Retiro", Object.keys(data[0] ?? { x: 1 }), data.map((d) => Object.values(d) as any), "pagos-retiro", `Recaudado: ${formatCurrency(totalRecaudado)} · Pendiente: ${formatCurrency(pendienteTotal)}`);
+    else exportToPDF("Estado de Pagos del Retiro", Object.keys(data[0] ?? { x: 1 }), data.map((d) => Object.values(d) as (string | number)[]), "pagos-retiro", `Recaudado: ${formatCurrency(totalRecaudado)} · Pendiente: ${formatCurrency(pendienteTotal)}`);
   };
 
   return (
@@ -152,7 +149,7 @@ function PagosPage() {
             <TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead>Confirmando</TableHead><TableHead>Monto</TableHead><TableHead>Método</TableHead><TableHead>Referencia</TableHead></TableRow></TableHeader>
             <TableBody>
               {pagos.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sin pagos registrados</TableCell></TableRow> :
-                pagos.slice(0, 50).map((p: any) => (
+                pagos.slice(0, 50).map((p) => (
                   <TableRow key={p.id}>
                     <TableCell>{formatDate(p.fecha)}</TableCell>
                     <TableCell>{p.confirmandos?.full_name}</TableCell>
@@ -181,7 +178,7 @@ function PagosPage() {
             <div className="sm:col-span-2"><Label>Confirmando *</Label>
               <Select value={pagoForm.confirmando_id} onValueChange={(v) => setPagoForm({ ...pagoForm, confirmando_id: v })}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                <SelectContent>{confirmandos.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.full_name}</SelectItem>)}</SelectContent>
+                <SelectContent>{confirmandos.map((c) => <SelectItem key={c.id} value={c.id}>{c.full_name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div><Label>Monto *</Label><Input type="number" value={pagoForm.monto} onChange={(e) => setPagoForm({ ...pagoForm, monto: e.target.value })} /></div>

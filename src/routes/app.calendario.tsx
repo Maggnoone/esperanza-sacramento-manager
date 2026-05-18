@@ -1,22 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CalendarDays, Plus } from "lucide-react";
 import { formatDateTime } from "@/lib/export";
+import { useCharlasCalendario } from "@/hooks/use-data";
+import type { Charla } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/app/calendario")({ component: CalendarioPage });
 
 function CalendarioPage() {
-  const { data: charlas = [] } = useQuery({
-    queryKey: ["calendario-charlas"],
-    queryFn: async () => (await supabase.from("charlas").select("*").order("fecha")).data ?? [],
-  });
+  const { data: charlas = [] } = useCharlasCalendario();
 
-  // Group by month
-  const byMonth = charlas.reduce((acc: Record<string, any[]>, c: any) => {
+  const byMonth = charlas.reduce<Record<string, Charla[]>>((acc, c) => {
     const key = new Date(c.fecha).toLocaleDateString("es-AR", { month: "long", year: "numeric" });
     (acc[key] ||= []).push(c);
     return acc;
@@ -51,7 +47,7 @@ function CalendarioPage() {
         <Card key={month} className="shadow-soft">
           <CardHeader><CardTitle className="font-display text-xl capitalize">{month}</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            {items.map((c: any) => (
+            {items.map((c) => (
               <div key={c.id} className="flex items-start gap-4 rounded-lg border p-4 transition hover:shadow-soft">
                 <div className="flex flex-col items-center justify-center rounded-lg bg-secondary px-4 py-2 text-center">
                   <span className="font-display text-2xl font-semibold leading-none">{new Date(c.fecha).getDate()}</span>

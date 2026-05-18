@@ -5,15 +5,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, HeartHandshake, BookOpen, Wallet, ClipboardCheck, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { formatCurrency } from "@/lib/export";
+import type { Confirmando, Asistencia, Pago, CostoRetiro } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/app/")({
   component: Dashboard,
 });
 
+interface DashboardStats {
+  totalConf: number;
+  conBautismo: number;
+  aptos: number;
+  padrinos: number;
+  charlas: number;
+  asistPct: number;
+  recaudado: number;
+  pendiente: number;
+}
+
 function Dashboard() {
   const { user, roles, canSeePagos } = useAuth();
 
-  const { data: stats } = useQuery({
+  const { data: stats } = useQuery<DashboardStats>({
     queryKey: ["dashboard-stats", canSeePagos],
     queryFn: async () => {
       const [confirmandos, padrinos, charlas, asistencia, pagos, costo] = await Promise.all([
@@ -21,19 +33,16 @@ function Dashboard() {
         supabase.from("padrinos").select("id", { count: "exact", head: true }),
         supabase.from("charlas").select("id", { count: "exact", head: true }),
         supabase.from("asistencia").select("id, presente"),
-        canSeePagos ? supabase.from("pagos").select("monto") : Promise.resolve({ data: [] as { monto: number }[] }),
-        canSeePagos ? supabase.from("costo_retiro").select("monto").eq("activo", true).maybeSingle() : Promise.resolve({ data: null }),
+        canSeePagos ? supabase.from("pagos").select("monto") : Promise.resolve({ data: [] as Pago[] }),
+        canSeePagos ? supabase.from("costo_retiro").select("monto").eq("activo", true).maybeSingle() : Promise.resolve({ data: null as CostoRetiro | null }),
       ]);
       const totalConf = confirmandos.count ?? 0;
-      const conBautismo = (confirmandos.data ?? []).filter((c) => c.has_baptism).length;
-      const aptos = (confirmandos.data ?? []).filter((c) => c.status === "apto" || c.status === "confirmado").length;
-      const totalAsist = asistencia.data?.length ?? 0;
-      const presentes = (asistencia.data ?? []).filter((a) => a.presente).length;
-      const recaudado = ((pagos as { data: { monto: number }[] | null }).data ?? []).reduce(
-        (s, p) => s + Number(p.monto ?? 0),
-        0,
-      );
-      const costoTotal = Number((costo as { data: { monto: number } | null }).data?.monto ?? 0) * totalConf;
+      const conBautismo = ((confirmandos.data ?? []) as Confirmando[]).filter((c) => c.has_baptism).length;
+      const aptos = ((confirmandos.data ?? []) as Confirmando[]).filter((c) => c.status === "apto" || c.status === "confirmado").length;
+      const totalAsist = (asistencia.data as Asistencia[] | null)?.length ?? 0;
+      const presentes = ((asistencia.data ?? []) as Asistencia[]).filter((a) => a.presente).length;
+      const recaudado = ((pagos.data ?? []) as Pago[]).reduce((s, p) => s + Number(p.monto ?? 0), 0);
+      const costoTotal = Number((costo.data as CostoRetiro | null)?.monto ?? 0) * totalConf;
       return {
         totalConf,
         conBautismo,

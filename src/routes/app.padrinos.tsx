@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -16,6 +16,8 @@ import { Plus, Pencil, Trash2, Download } from "lucide-react";
 import { toast } from "sonner";
 import { exportToXLSX } from "@/lib/export";
 import { useAuth } from "@/hooks/use-auth";
+import { usePadrinos } from "@/hooks/use-data";
+import type { Padrino, PadrinoInsert } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/app/padrinos")({ component: PadrinosPage });
 
@@ -35,12 +37,9 @@ function PadrinosPage() {
   const qc = useQueryClient();
   const { isAdmin } = useAuth();
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<any | null>(null);
+  const [editing, setEditing] = useState<Padrino | null>(null);
 
-  const { data: rows = [] } = useQuery({
-    queryKey: ["padrinos"],
-    queryFn: async () => (await supabase.from("padrinos").select("*").order("full_name")).data ?? [],
-  });
+  const { data: rows = [] } = usePadrinos();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -48,23 +47,35 @@ function PadrinosPage() {
   });
 
   const openNew = () => { setEditing(null); form.reset({ full_name: "", has_confirmation: true, is_married_church: false, dni: "", telefono: "", email: "", parentesco: "", notas: "" }); setOpen(true); };
-  const openEdit = (r: any) => { setEditing(r); form.reset({ ...r, dni: r.dni ?? "", telefono: r.telefono ?? "", email: r.email ?? "", parentesco: r.parentesco ?? "", notas: r.notas ?? "", is_married_church: !!r.is_married_church }); setOpen(true); };
+  const openEdit = (r: Padrino) => { setEditing(r); form.reset({ ...r, dni: r.dni ?? "", telefono: r.telefono ?? "", email: r.email ?? "", parentesco: r.parentesco ?? "", notas: r.notas ?? "", is_married_church: !!r.is_married_church }); setOpen(true); };
+
+  const buildPayload = (v: FormValues): PadrinoInsert => ({
+    full_name: v.full_name,
+    dni: v.dni || null,
+    telefono: v.telefono || null,
+    email: v.email || null,
+    parentesco: v.parentesco || null,
+    has_confirmation: v.has_confirmation,
+    is_married_church: v.is_married_church ?? false,
+    notas: v.notas || null,
+  });
 
   const save = useMutation({
     mutationFn: async (v: FormValues) => {
-      const payload: any = { ...v, dni: v.dni || null, telefono: v.telefono || null, email: v.email || null, parentesco: v.parentesco || null, notas: v.notas || null };
+      const payload = buildPayload(v);
       const { error } = editing
         ? await supabase.from("padrinos").update(payload).eq("id", editing.id)
         : await supabase.from("padrinos").insert(payload);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Guardado"); qc.invalidateQueries({ queryKey: ["padrinos"] }); setOpen(false); },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const remove = useMutation({
     mutationFn: async (id: string) => { const { error } = await supabase.from("padrinos").delete().eq("id", id); if (error) throw error; },
     onSuccess: () => { toast.success("Eliminado"); qc.invalidateQueries({ queryKey: ["padrinos"] }); },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   return (
@@ -75,7 +86,7 @@ function PadrinosPage() {
           <p className="text-sm text-muted-foreground">Registro completo de padrinos disponibles.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => exportToXLSX(rows.map((r: any) => ({ Nombre: r.full_name, DNI: r.dni, Teléfono: r.telefono, Email: r.email, Parentesco: r.parentesco, Confirmado: r.has_confirmation ? "Sí" : "No" })), "padrinos")}>
+          <Button variant="outline" onClick={() => exportToXLSX(rows.map((r) => ({ Nombre: r.full_name, DNI: r.dni, Teléfono: r.telefono, Email: r.email, Parentesco: r.parentesco, Confirmado: r.has_confirmation ? "Sí" : "No" })), "padrinos")}>
             <Download className="mr-2 h-4 w-4" />Exportar
           </Button>
           <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" />Nuevo</Button>
@@ -90,7 +101,7 @@ function PadrinosPage() {
             <TableBody>
               {rows.length === 0 ? (
                 <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sin registros</TableCell></TableRow>
-              ) : rows.map((r: any) => (
+              ) : rows.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell className="font-medium">{r.full_name}</TableCell>
                   <TableCell>{r.dni ?? "—"}</TableCell>

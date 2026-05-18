@@ -1,76 +1,77 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileSpreadsheet, FileText, FileType, Users, ClipboardCheck, Wallet, AlertCircle } from "lucide-react";
 import { exportToCSV, exportToPDF, exportToXLSX } from "@/lib/export";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { useConfirmandos, usePagos } from "@/hooks/use-data";
+
 
 export const Route = createFileRoute("/app/reportes")({ component: ReportesPage });
+
+interface ReporteDef {
+  title: string;
+  desc: string;
+  icon: React.ComponentType<{ className?: string }>;
+  data: () => Record<string, unknown>[];
+  filename: string;
+}
 
 function ReportesPage() {
   const { canSeePagos } = useAuth();
 
-  const { data: confirmandos = [] } = useQuery({
-    queryKey: ["rep-confirmandos"],
-    queryFn: async () => (await supabase.from("confirmandos").select("*, grupos(nombre), padrinos(full_name)")).data ?? [],
-  });
-  const { data: pagos = [] } = useQuery({
-    queryKey: ["rep-pagos"],
-    queryFn: async () => canSeePagos ? (await supabase.from("pagos").select("*, confirmandos(full_name)")).data ?? [] : [],
-    enabled: canSeePagos,
-  });
+  const { data: confirmandos = [] } = useConfirmandos();
+  const { data: pagos = [] } = usePagos();
 
-  const pendientes = confirmandos.filter((c: any) => c.status === "activo");
-  const aptos = confirmandos.filter((c: any) => c.status === "apto" || c.status === "confirmado");
-  const sinBautismo = confirmandos.filter((c: any) => !c.has_baptism);
+  const pendientes = confirmandos.filter((c) => c.status === "activo");
+  const aptos = confirmandos.filter((c) => c.status === "apto" || c.status === "confirmado");
+  const sinBautismo = confirmandos.filter((c) => !c.has_baptism);
 
-  const reportes: { title: string; desc: string; icon: any; data: () => Record<string, unknown>[]; filename: string }[] = [
+  const reportes: ReporteDef[] = [
     {
       title: "Listado completo de confirmandos",
       desc: `${confirmandos.length} registros con grupo, padrino y sacramentos.`,
       icon: Users,
-      data: () => confirmandos.map((c: any) => ({ Nombre: c.full_name, DNI: c.dni, Grupo: c.grupos?.nombre, Padrino: c.padrinos?.full_name, Bautismo: c.has_baptism ? "Sí" : "No", Comunión: c.has_communion ? "Sí" : "No", Estado: c.status })),
+      data: () => confirmandos.map((c) => ({ Nombre: c.full_name, DNI: c.dni, Grupo: c.grupos?.nombre, Padrino: c.padrinos?.full_name, Bautismo: c.has_baptism ? "Sí" : "No", Comunión: c.has_communion ? "Sí" : "No", Estado: c.status })),
       filename: "confirmandos-completo",
     },
     {
       title: "Confirmandos pendientes de aptitud",
       desc: `${pendientes.length} jóvenes aún en formación activa.`,
       icon: AlertCircle,
-      data: () => pendientes.map((c: any) => ({ Nombre: c.full_name, DNI: c.dni, Bautismo: c.has_baptism ? "Sí" : "Falta", Comunión: c.has_communion ? "Sí" : "Falta", Padrino: c.padrinos?.full_name ?? "Sin asignar" })),
+      data: () => pendientes.map((c) => ({ Nombre: c.full_name, DNI: c.dni, Bautismo: c.has_baptism ? "Sí" : "Falta", Comunión: c.has_communion ? "Sí" : "Falta", Padrino: c.padrinos?.full_name ?? "Sin asignar" })),
       filename: "pendientes-aptitud",
     },
     {
       title: "Confirmandos aptos / confirmados",
       desc: `${aptos.length} listos o ya confirmados.`,
       icon: ClipboardCheck,
-      data: () => aptos.map((c: any) => ({ Nombre: c.full_name, DNI: c.dni, Estado: c.status, Fecha_confirmación: c.fecha_confirmacion ?? "—" })),
+      data: () => aptos.map((c) => ({ Nombre: c.full_name, DNI: c.dni, Estado: c.status, Fecha_confirmación: c.fecha_confirmacion ?? "—" })),
       filename: "aptos-confirmados",
     },
     {
       title: "Confirmandos sin bautismo registrado",
       desc: `${sinBautismo.length} requieren completar requisito.`,
       icon: AlertCircle,
-      data: () => sinBautismo.map((c: any) => ({ Nombre: c.full_name, DNI: c.dni, Contacto: c.contacto_padres ?? c.telefono })),
+      data: () => sinBautismo.map((c) => ({ Nombre: c.full_name, DNI: c.dni, Contacto: c.contacto_padres ?? c.telefono })),
       filename: "sin-bautismo",
     },
     ...(canSeePagos ? [{
       title: "Historial completo de pagos",
       desc: `${pagos.length} transacciones registradas.`,
       icon: Wallet,
-      data: () => pagos.map((p: any) => ({ Fecha: p.fecha, Confirmando: p.confirmandos?.full_name, Monto: p.monto, Método: p.metodo, Referencia: p.referencia ?? "" })),
+      data: () => pagos.map((p) => ({ Fecha: p.fecha, Confirmando: p.confirmandos?.full_name, Monto: p.monto, Método: p.metodo, Referencia: p.referencia ?? "" })),
       filename: "pagos-historial",
     }] : []),
   ];
 
-  const run = (kind: "xlsx" | "pdf" | "csv", r: typeof reportes[number]) => {
+  const run = (kind: "xlsx" | "pdf" | "csv", r: ReporteDef) => {
     const data = r.data();
     if (!data.length) return toast.warning("Sin datos para exportar");
     if (kind === "csv") exportToCSV(data, r.filename);
     else if (kind === "xlsx") exportToXLSX(data, r.filename, "Reporte");
-    else exportToPDF(r.title, Object.keys(data[0]), data.map((d) => Object.values(d) as any), r.filename, r.desc);
+    else exportToPDF(r.title, Object.keys(data[0]), data.map((d) => Object.values(d) as (string | number)[]), r.filename, r.desc);
   };
 
   return (

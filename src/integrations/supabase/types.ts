@@ -602,3 +602,52 @@ export const Constants = {
     },
   },
 } as const
+
+// ── Convenience types (use these instead of `any`) ──
+
+export type Confirmando = Tables<"confirmandos">;
+export type ConfirmandoInsert = TablesInsert<"confirmandos">;
+export type ConfirmandoUpdate = TablesUpdate<"confirmandos">;
+export type ConfirmandoWithRelations = Confirmando & {
+  grupos?: { nombre: string | null } | null;
+  padrinos?: { full_name: string | null } | null;
+};
+
+export type Padrino = Tables<"padrinos">;
+export type PadrinoInsert = TablesInsert<"padrinos">;
+export type PadrinoUpdate = TablesUpdate<"padrinos">;
+
+export type Charla = Tables<"charlas">;
+export type CharlaInsert = TablesInsert<"charlas">;
+export type CharlaUpdate = TablesUpdate<"charlas">;
+
+export type Grupo = Tables<"grupos">;
+export type GrupoInsert = TablesInsert<"grupos">;
+
+export type Asistencia = Tables<"asistencia">;
+export type AsistenciaInsert = TablesInsert<"asistencia">;
+
+export type Pago = Tables<"pagos">;
+export type PagoInsert = TablesInsert<"pagos">;
+export type PagoWithRelations = Pago & {
+  confirmandos?: { full_name: string | null } | null;
+};
+
+export type CostoRetiro = Tables<"costo_retiro">;
+export type CostoRetiroInsert = TablesInsert<"costo_retiro">;
+
+export type Profile = Tables<"profiles">;
+export type UserRole = Tables<"user_roles">;
+export type UserRoleInsert = TablesInsert<"user_roles">;
+
+export type Material = Tables<"materiales">;
+export type MaterialInsert = TablesInsert<"materiales">;
+
+export type AuditLog = Tables<"audit_log">;
+
+export type AppRole = Enums<"app_role">;
+export type PaymentMethod = Enums<"payment_method">;
+export type SessionType = Enums<"session_type">;
+export type ConfirmandoStatus = Enums<"confirmando_status">;
+
+
