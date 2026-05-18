@@ -17,11 +17,15 @@ function Landing() {
       <header className="border-b border-border/40 bg-background/60 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2">
-            <img src="/src/assets/logoESP.png" alt="Esperanza Viva" className="h-9 w-9 rounded-lg object-contain" />
+            <img
+              src="/src/assets/logoESP.png"
+              alt="Esperanza de San Pablo"
+              className="h-9 w-9 rounded-lg object-contain"
+            />
             <div className="leading-tight">
-              <p className="font-display text-lg font-semibold">Esperanza Viva</p>
+              <p className="font-display text-lg font-semibold">Esperanza de San Pablo</p>
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                San Pablo · Confirmación
+                Una Confirmación de Fe
               </p>
             </div>
           </div>
@@ -57,10 +61,26 @@ function Landing() {
         {/* Features grid */}
         <div className="mt-20 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {[
-            { icon: Users, t: "Confirmandos & Padrinos", d: "Fichas completas con sacramentos previos, contacto y validaciones." },
-            { icon: CalendarDays, t: "Charlas y Retiros", d: "Calendario editable de catequesis, convivencias y retiro espiritual." },
-            { icon: ShieldCheck, t: "Asistencia móvil", d: "Pase de lista rápido optimizado para celular durante cada encuentro." },
-            { icon: Wallet, t: "Pagos del Retiro", d: "Control financiero con saldos, métodos de pago y reportes exportables." },
+            {
+              icon: Users,
+              t: "Confirmandos & Padrinos",
+              d: "Fichas completas con sacramentos previos, contacto y validaciones.",
+            },
+            {
+              icon: CalendarDays,
+              t: "Charlas y Retiros",
+              d: "Calendario editable de catequesis, convivencias y retiro espiritual.",
+            },
+            {
+              icon: ShieldCheck,
+              t: "Asistencia móvil",
+              d: "Pase de lista rápido optimizado para celular durante cada encuentro.",
+            },
+            {
+              icon: Wallet,
+              t: "Pagos del Retiro",
+              d: "Control financiero con saldos, métodos de pago y reportes exportables.",
+            },
           ].map((f) => (
             <div
               key={f.t}
@@ -77,7 +97,7 @@ function Landing() {
       </section>
 
       <footer className="border-t border-border/40 py-6 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} Movimiento Esperanza · Parroquia San Pablo
+        © {new Date().getFullYear()} Movimiento Esperanza de San Pablo · Parroquia San Pablo
       </footer>
     </div>
   );

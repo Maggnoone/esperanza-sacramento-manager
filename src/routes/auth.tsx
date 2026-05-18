@@ -78,9 +78,13 @@ function AuthPage() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-hero px-4 py-12">
       <div className="w-full max-w-md">
         <Link to="/" className="mb-6 flex items-center justify-center gap-2">
-          <img src="/src/assets/logoESP.png" alt="Esperanza Viva" className="h-10 w-10 rounded-lg object-contain" />
+          <img
+            src="/src/assets/logoESP.png"
+            alt="Esperanza de San Pablo"
+            className="h-10 w-10 rounded-lg object-contain"
+          />
           <div className="leading-tight">
-            <p className="font-display text-xl font-semibold">Esperanza Viva</p>
+            <p className="font-display text-xl font-semibold">Esperanza de San Pablo</p>
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
               Movimiento San Pablo
             </p>
@@ -103,16 +107,30 @@ function AuthPage() {
                 <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="login-email">Email</Label>
-                    <Input id="login-email" type="email" autoComplete="email" {...loginForm.register("email")} />
+                    <Input
+                      id="login-email"
+                      type="email"
+                      autoComplete="email"
+                      {...loginForm.register("email")}
+                    />
                     {loginForm.formState.errors.email && (
-                      <p className="text-xs text-destructive">{loginForm.formState.errors.email.message}</p>
+                      <p className="text-xs text-destructive">
+                        {loginForm.formState.errors.email.message}
+                      </p>
                     )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="login-password">Contraseña</Label>
-                    <Input id="login-password" type="password" autoComplete="current-password" {...loginForm.register("password")} />
+                    <Input
+                      id="login-password"
+                      type="password"
+                      autoComplete="current-password"
+                      {...loginForm.register("password")}
+                    />
                     {loginForm.formState.errors.password && (
-                      <p className="text-xs text-destructive">{loginForm.formState.errors.password.message}</p>
+                      <p className="text-xs text-destructive">
+                        {loginForm.formState.errors.password.message}
+                      </p>
                     )}
                   </div>
                   <Button type="submit" className="w-full" disabled={submitting}>
@@ -127,21 +145,37 @@ function AuthPage() {
                     <Label htmlFor="signup-name">Nombre completo</Label>
                     <Input id="signup-name" {...signupForm.register("fullName")} />
                     {signupForm.formState.errors.fullName && (
-                      <p className="text-xs text-destructive">{signupForm.formState.errors.fullName.message}</p>
+                      <p className="text-xs text-destructive">
+                        {signupForm.formState.errors.fullName.message}
+                      </p>
                     )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
-                    <Input id="signup-email" type="email" autoComplete="email" {...signupForm.register("email")} />
+                    <Input
+                      id="signup-email"
+                      type="email"
+                      autoComplete="email"
+                      {...signupForm.register("email")}
+                    />
                     {signupForm.formState.errors.email && (
-                      <p className="text-xs text-destructive">{signupForm.formState.errors.email.message}</p>
+                      <p className="text-xs text-destructive">
+                        {signupForm.formState.errors.email.message}
+                      </p>
                     )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">Contraseña</Label>
-                    <Input id="signup-password" type="password" autoComplete="new-password" {...signupForm.register("password")} />
+                    <Input
+                      id="signup-password"
+                      type="password"
+                      autoComplete="new-password"
+                      {...signupForm.register("password")}
+                    />
                     {signupForm.formState.errors.password && (
-                      <p className="text-xs text-destructive">{signupForm.formState.errors.password.message}</p>
+                      <p className="text-xs text-destructive">
+                        {signupForm.formState.errors.password.message}
+                      </p>
                     )}
                   </div>
                   <Button type="submit" className="w-full" disabled={submitting}>

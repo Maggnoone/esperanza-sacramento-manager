@@ -6,7 +6,14 @@ import { Users, HeartHandshake, BookOpen, Wallet, ClipboardCheck, Sparkles } fro
 import { useAuth } from "@/hooks/use-auth";
 import { formatCurrency } from "@/lib/export";
 import type { Confirmando, Asistencia, Pago, CostoRetiro } from "@/integrations/supabase/types";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from "recharts";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
+  Legend,
+} from "recharts";
 
 export const Route = createFileRoute("/app/")({
   component: Dashboard,
@@ -35,22 +42,49 @@ function Dashboard() {
         supabase.from("padrinos").select("id", { count: "exact", head: true }),
         supabase.from("charlas").select("id", { count: "exact", head: true }),
         supabase.from("asistencia").select("id, presente"),
-        canSeePagos ? supabase.from("pagos").select("monto") : Promise.resolve({ data: [] as Pago[] }),
-        canSeePagos ? supabase.from("costo_retiro").select("monto").eq("activo", true).maybeSingle() : Promise.resolve({ data: null as CostoRetiro | null }),
+        canSeePagos
+          ? supabase.from("pagos").select("monto")
+          : Promise.resolve({ data: [] as Pago[] }),
+        canSeePagos
+          ? supabase.from("costo_retiro").select("monto").eq("activo", true).maybeSingle()
+          : Promise.resolve({ data: null as CostoRetiro | null }),
       ]);
       const totalConf = confirmandos.count ?? 0;
-      const conBautismo = ((confirmandos.data ?? []) as Confirmando[]).filter((c) => c.has_baptism).length;
-      const aptos = ((confirmandos.data ?? []) as Confirmando[]).filter((c) => c.status === "apto" || c.status === "confirmado").length;
+      const conBautismo = ((confirmandos.data ?? []) as Confirmando[]).filter(
+        (c) => c.has_baptism,
+      ).length;
+      const aptos = ((confirmandos.data ?? []) as Confirmando[]).filter(
+        (c) => c.status === "apto" || c.status === "confirmado",
+      ).length;
       const totalAsist = (asistencia.data as Asistencia[] | null)?.length ?? 0;
       const presentes = ((asistencia.data ?? []) as Asistencia[]).filter((a) => a.presente).length;
-      const recaudado = ((pagos.data ?? []) as Pago[]).reduce((s, p) => s + Number(p.monto ?? 0), 0);
+      const recaudado = ((pagos.data ?? []) as Pago[]).reduce(
+        (s, p) => s + Number(p.monto ?? 0),
+        0,
+      );
       const costoTotal = Number((costo.data as CostoRetiro | null)?.monto ?? 0) * totalConf;
       const dataConf = (confirmandos.data ?? []) as Confirmando[];
       const statusCounts = [
-        { name: "Activo", value: dataConf.filter((c) => c.status === "activo").length, color: "#00d729" },
-        { name: "Apto", value: dataConf.filter((c) => c.status === "apto").length, color: "#ffea00" },
-        { name: "Confirmado", value: dataConf.filter((c) => c.status === "confirmado").length, color: "#451b04" },
-        { name: "Baja", value: dataConf.filter((c) => c.status === "baja").length, color: "#ded9dc" },
+        {
+          name: "Activo",
+          value: dataConf.filter((c) => c.status === "activo").length,
+          color: "#00d729",
+        },
+        {
+          name: "Apto",
+          value: dataConf.filter((c) => c.status === "apto").length,
+          color: "#ffea00",
+        },
+        {
+          name: "Confirmado",
+          value: dataConf.filter((c) => c.status === "confirmado").length,
+          color: "#451b04",
+        },
+        {
+          name: "Baja",
+          value: dataConf.filter((c) => c.status === "baja").length,
+          color: "#ded9dc",
+        },
       ].filter((s) => s.value > 0);
       return {
         totalConf,
@@ -67,25 +101,65 @@ function Dashboard() {
   });
 
   const cards = [
-    { label: "Confirmandos", value: stats?.totalConf ?? 0, icon: Users, hint: `${stats?.conBautismo ?? 0} con bautismo` },
-    { label: "Aptos / Confirmados", value: stats?.aptos ?? 0, icon: Sparkles, hint: "Listos para el sacramento" },
-    { label: "Padrinos registrados", value: stats?.padrinos ?? 0, icon: HeartHandshake, hint: "Disponibles para asignar" },
-    { label: "Charlas programadas", value: stats?.charlas ?? 0, icon: BookOpen, hint: "Itinerario formativo" },
-    { label: "Asistencia promedio", value: `${stats?.asistPct ?? 0}%`, icon: ClipboardCheck, hint: "De todos los encuentros" },
+    {
+      label: "Confirmandos",
+      value: stats?.totalConf ?? 0,
+      icon: Users,
+      hint: `${stats?.conBautismo ?? 0} con bautismo`,
+    },
+    {
+      label: "Aptos / Confirmados",
+      value: stats?.aptos ?? 0,
+      icon: Sparkles,
+      hint: "Listos para el sacramento",
+    },
+    {
+      label: "Padrinos registrados",
+      value: stats?.padrinos ?? 0,
+      icon: HeartHandshake,
+      hint: "Disponibles para asignar",
+    },
+    {
+      label: "Charlas programadas",
+      value: stats?.charlas ?? 0,
+      icon: BookOpen,
+      hint: "Itinerario formativo",
+    },
+    {
+      label: "Asistencia promedio",
+      value: `${stats?.asistPct ?? 0}%`,
+      icon: ClipboardCheck,
+      hint: "De todos los encuentros",
+    },
     ...(canSeePagos
-      ? [{ label: "Recaudado retiro", value: formatCurrency(stats?.recaudado ?? 0), icon: Wallet, hint: `Pendiente: ${formatCurrency(stats?.pendiente ?? 0)}` }]
+      ? [
+          {
+            label: "Recaudado retiro",
+            value: formatCurrency(stats?.recaudado ?? 0),
+            icon: Wallet,
+            hint: `Pendiente: ${formatCurrency(stats?.pendiente ?? 0)}`,
+          },
+        ]
       : []),
   ];
 
   return (
     <div className="mx-auto max-w-7xl space-y-8">
       <div>
-        <p className="text-sm text-muted-foreground">{new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>
+        <p className="text-sm text-muted-foreground">
+          {new Date().toLocaleDateString("es-AR", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          })}
+        </p>
         <h1 className="font-display text-3xl font-semibold tracking-tight">
           Bienvenido, <span className="text-primary">{user?.email?.split("@")[0]}</span>
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Rol{roles.length > 1 ? "es" : ""}: <span className="font-medium text-foreground">{roles.join(", ") || "sin asignar"}</span>
+          Rol{roles.length > 1 ? "es" : ""}:{" "}
+          <span className="font-medium text-foreground">{roles.join(", ") || "sin asignar"}</span>
         </p>
       </div>
 
@@ -109,7 +183,9 @@ function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="shadow-soft">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Estado de confirmandos</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Estado de confirmandos
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {stats?.statusCounts && stats.statusCounts.length > 0 ? (
@@ -143,13 +219,14 @@ function Dashboard() {
           <CardContent className="flex items-center gap-4 p-6">
             <img
               src="/src/assets/logoESP.png"
-              alt="Esperanza Viva"
+              alt="Esperanza de San Pablo"
               className="h-12 w-12 rounded-xl object-contain shadow-glow"
             />
             <div>
               <h3 className="font-display text-lg font-semibold">Tip del día</h3>
               <p className="text-sm text-muted-foreground">
-                Recuerda que un confirmando solo puede marcarse como <strong>Apto</strong> si tiene su bautismo registrado.
+                Recuerda que un confirmando solo puede marcarse como <strong>Apto</strong> si tiene
+                su bautismo registrado.
               </p>
             </div>
           </CardContent>

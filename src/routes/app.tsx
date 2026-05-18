@@ -30,7 +30,11 @@ function AppLayout() {
           </a>
           <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur">
             <SidebarTrigger aria-label="Abrir menú lateral" />
-            <img src="/src/assets/logoESP.png" alt="Esperanza Viva" className="h-7 w-7 rounded-md object-contain opacity-80" />
+            <img
+              src="/src/assets/logoESP.png"
+              alt="Esperanza de San Pablo"
+              className="h-7 w-7 rounded-md object-contain opacity-80"
+            />
             <div className="flex-1" />
           </header>
           <main id="main-content" className="flex-1 p-6 page-transition">

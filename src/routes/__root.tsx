@@ -30,11 +30,19 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Esperanza Viva — Gestión de Confirmación" },
-      { name: "description", content: "Plataforma del Movimiento Esperanza de San Pablo para administrar confirmandos, padrinos, asistencia, charlas y pagos del retiro." },
+      { title: "Esperanza de San Pablo — Gestión de Confirmación" },
+      {
+        name: "description",
+        content:
+          "Plataforma del Movimiento Esperanza de San Pablo para administrar confirmandos, padrinos, asistencia, charlas y pagos del retiro.",
+      },
       { name: "author", content: "Movimiento Esperanza San Pablo" },
-      { property: "og:title", content: "Esperanza Viva — Gestión de Confirmación" },
-      { property: "og:description", content: "Sistema integral para la formación sacramental: confirmandos, padrinos, asistencia, charlas y pagos." },
+      { property: "og:title", content: "Esperanza de San Pablo — Gestión de Confirmación" },
+      {
+        property: "og:description",
+        content:
+          "Sistema integral para la formación sacramental: confirmandos, padrinos, asistencia, charlas y pagos.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },

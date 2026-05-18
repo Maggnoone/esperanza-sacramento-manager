@@ -71,14 +71,14 @@ export function AppSidebar() {
         <Link to="/app" className="flex items-center gap-2 px-2 py-2" onClick={handleNav}>
           <img
             src="/src/assets/logoESP.png"
-            alt="Esperanza Viva"
+            alt="Esperanza de San Pablo"
             className="h-9 w-9 shrink-0 rounded-lg object-contain"
           />
           {!collapsed && (
             <div className="flex flex-col leading-tight">
-              <span className="font-display text-base font-semibold">Esperanza Viva</span>
+              <span className="font-display text-base font-semibold">Esperanza de San Pablo</span>
               <span className="text-[10px] uppercase tracking-wider text-sidebar-foreground/70">
-                San Pablo · Confirmación
+                Una Confirmación de Fe
               </span>
             </div>
           )}
