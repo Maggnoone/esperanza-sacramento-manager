@@ -6,6 +6,7 @@ import { Users, HeartHandshake, BookOpen, Wallet, ClipboardCheck, Sparkles } fro
 import { useAuth } from "@/hooks/use-auth";
 import { formatCurrency } from "@/lib/export";
 import type { Confirmando, Asistencia, Pago, CostoRetiro } from "@/integrations/supabase/types";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from "recharts";
 
 export const Route = createFileRoute("/app/")({
   component: Dashboard,
@@ -20,6 +21,7 @@ interface DashboardStats {
   asistPct: number;
   recaudado: number;
   pendiente: number;
+  statusCounts: { name: string; value: number; color: string }[];
 }
 
 function Dashboard() {
@@ -43,6 +45,13 @@ function Dashboard() {
       const presentes = ((asistencia.data ?? []) as Asistencia[]).filter((a) => a.presente).length;
       const recaudado = ((pagos.data ?? []) as Pago[]).reduce((s, p) => s + Number(p.monto ?? 0), 0);
       const costoTotal = Number((costo.data as CostoRetiro | null)?.monto ?? 0) * totalConf;
+      const dataConf = (confirmandos.data ?? []) as Confirmando[];
+      const statusCounts = [
+        { name: "Activo", value: dataConf.filter((c) => c.status === "activo").length, color: "#00d729" },
+        { name: "Apto", value: dataConf.filter((c) => c.status === "apto").length, color: "#ffea00" },
+        { name: "Confirmado", value: dataConf.filter((c) => c.status === "confirmado").length, color: "#451b04" },
+        { name: "Baja", value: dataConf.filter((c) => c.status === "baja").length, color: "#ded9dc" },
+      ].filter((s) => s.value > 0);
       return {
         totalConf,
         conBautismo,
@@ -52,6 +61,7 @@ function Dashboard() {
         asistPct: totalAsist ? Math.round((presentes / totalAsist) * 100) : 0,
         recaudado,
         pendiente: Math.max(costoTotal - recaudado, 0),
+        statusCounts,
       };
     },
   });
@@ -96,19 +106,55 @@ function Dashboard() {
         ))}
       </div>
 
-      <Card className="bg-gradient-hero shadow-soft">
-        <CardContent className="flex items-center gap-4 p-6">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground shadow-glow">
-            <Sparkles className="h-6 w-6" />
-          </div>
-          <div>
-            <h3 className="font-display text-lg font-semibold">Tip del día</h3>
-            <p className="text-sm text-muted-foreground">
-              Recuerda que un confirmando solo puede marcarse como <strong>Apto</strong> si tiene su bautismo registrado.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card className="shadow-soft">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Estado de confirmandos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {stats?.statusCounts && stats.statusCounts.length > 0 ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie
+                    data={stats.statusCounts}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={4}
+                    dataKey="value"
+                    nameKey="name"
+                  >
+                    {stats.statusCounts.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip />
+                  <Legend verticalAlign="bottom" height={36} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-8">Sin datos</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-hero shadow-soft">
+          <CardContent className="flex items-center gap-4 p-6">
+            <img
+              src="/src/assets/logoESP.png"
+              alt="Esperanza Viva"
+              className="h-12 w-12 rounded-xl object-contain shadow-glow"
+            />
+            <div>
+              <h3 className="font-display text-lg font-semibold">Tip del día</h3>
+              <p className="text-sm text-muted-foreground">
+                Recuerda que un confirmando solo puede marcarse como <strong>Apto</strong> si tiene su bautismo registrado.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

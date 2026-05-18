@@ -17,9 +17,7 @@ function Landing() {
       <header className="border-b border-border/40 bg-background/60 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-primary text-primary-foreground shadow-soft">
-              <Sparkles className="h-5 w-5" />
-            </div>
+            <img src="/src/assets/logoESP.png" alt="Esperanza Viva" className="h-9 w-9 rounded-lg object-contain" />
             <div className="leading-tight">
               <p className="font-display text-lg font-semibold">Esperanza Viva</p>
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground">

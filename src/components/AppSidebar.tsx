@@ -23,7 +23,6 @@ import {
   FileBarChart,
   Settings,
   LogOut,
-  Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -65,13 +64,15 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border">
         <Link to="/app" className="flex items-center gap-2 px-2 py-2">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-primary text-primary-foreground shadow-soft">
-            <Sparkles className="h-5 w-5" />
-          </div>
+          <img
+            src="/src/assets/logoESP.png"
+            alt="Esperanza Viva"
+            className="h-9 w-9 shrink-0 rounded-lg object-contain"
+          />
           {!collapsed && (
             <div className="flex flex-col leading-tight">
               <span className="font-display text-base font-semibold">Esperanza Viva</span>
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              <span className="text-[10px] uppercase tracking-wider text-sidebar-foreground/70">
                 San Pablo · Confirmación
               </span>
             </div>

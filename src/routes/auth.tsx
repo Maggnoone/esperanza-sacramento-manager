@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
@@ -78,9 +78,7 @@ function AuthPage() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-hero px-4 py-12">
       <div className="w-full max-w-md">
         <Link to="/" className="mb-6 flex items-center justify-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-primary text-primary-foreground shadow-soft">
-            <Sparkles className="h-5 w-5" />
-          </div>
+          <img src="/src/assets/logoESP.png" alt="Esperanza Viva" className="h-10 w-10 rounded-lg object-contain" />
           <div className="leading-tight">
             <p className="font-display text-xl font-semibold">Esperanza Viva</p>
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
