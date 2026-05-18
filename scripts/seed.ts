@@ -265,7 +265,7 @@ async function main() {
   console.log("🌱 Seeding confirmandos...");
   const confirmandos = Array.from({ length: 20 }).map(() => {
     const status = pick(statuses);
-    const hasBaptism = status === "confirmado" ? true : Math.random() > 0.15;
+    const hasBaptism = status === "confirmado" || status === "apto" ? true : Math.random() > 0.15;
     const hasCommunion = hasBaptism && Math.random() > 0.1;
     return {
       id: uuid(),
@@ -390,14 +390,34 @@ async function main() {
   const allPagos = [...pagos, ...boletaPagos];
   const { error: paErr } = await supabase.from("pagos").insert(allPagos);
   if (paErr) throw paErr;
-  console.log(`   → ${allPagos.length} pagos (${pagos.length} retiro + ${boletaPagos.length} boleta)`);
+  console.log(
+    `   → ${allPagos.length} pagos (${pagos.length} retiro + ${boletaPagos.length} boleta)`,
+  );
 
   // 9. Costo retiro
   console.log("🌱 Seeding costo_retiro...");
   const costoRetiro = [
-    { id: uuid(), descripcion: "Retiro Espiritual 2025", monto: 45000, activo: true, concepto: "retiro" },
-    { id: uuid(), descripcion: "Campamento Jóvenes 2026", monto: 60000, activo: false, concepto: "retiro" },
-    { id: uuid(), descripcion: "Boleta de Confirmación", monto: 5000, activo: true, concepto: "boleta" },
+    {
+      id: uuid(),
+      descripcion: "Retiro Espiritual 2025",
+      monto: 45000,
+      activo: true,
+      concepto: "retiro",
+    },
+    {
+      id: uuid(),
+      descripcion: "Campamento Jóvenes 2026",
+      monto: 60000,
+      activo: false,
+      concepto: "retiro",
+    },
+    {
+      id: uuid(),
+      descripcion: "Boleta de Confirmación",
+      monto: 5000,
+      activo: true,
+      concepto: "boleta",
+    },
   ];
   const { error: crErr } = await supabase.from("costo_retiro").insert(costoRetiro);
   if (crErr) throw crErr;
