@@ -7,9 +7,9 @@ En el dashboard de Vercel → Settings → Environment Variables, agregar:
 | Key | Valor | Entorno |
 |-----|-------|---------|
 | `VITE_SUPABASE_URL` | https://afsycytxlakqrjvjfoss.supabase.co | Production, Preview, Development |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | sb_publishable_MKiHyHbBaV4a0a55zU3hwQ_Pp_xLnW5 | Production, Preview, Development |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | <tu-publishable-key> | Production, Preview, Development |
 | `SUPABASE_URL` | https://afsycytxlakqrjvjfoss.supabase.co | Production, Preview, Development |
-| `SUPABASE_PUBLISHABLE_KEY` | sb_publishable_MKiHyHbBaV4a0a55zU3hwQ_Pp_xLnW5 | Production, Preview, Development |
+| `SUPABASE_PUBLISHABLE_KEY` | <tu-publishable-key> | Production, Preview, Development |
 
 ## Pasos de deploy
 
