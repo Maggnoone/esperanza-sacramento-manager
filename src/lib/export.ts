@@ -2,6 +2,8 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
+export { formatCurrency, formatDate, formatDateTime } from "./format";
+
 export function exportToCSV<T extends Record<string, unknown>>(rows: T[], filename: string) {
   if (!rows.length) return;
   const ws = XLSX.utils.json_to_sheet(rows);
@@ -60,21 +62,4 @@ function triggerDownload(blob: Blob, name: string) {
   a.download = name;
   a.click();
   URL.revokeObjectURL(url);
-}
-
-export function formatCurrency(value: number | string | null | undefined) {
-  const n = Number(value ?? 0);
-  return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(n);
-}
-
-export function formatDate(value: string | Date | null | undefined) {
-  if (!value) return "—";
-  const d = typeof value === "string" ? new Date(value) : value;
-  return d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
-}
-
-export function formatDateTime(value: string | Date | null | undefined) {
-  if (!value) return "—";
-  const d = typeof value === "string" ? new Date(value) : value;
-  return d.toLocaleString("es-AR", { dateStyle: "medium", timeStyle: "short" });
 }

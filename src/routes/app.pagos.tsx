@@ -17,17 +17,12 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { formatCurrency, formatDate, exportToXLSX, exportToPDF } from "@/lib/export";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ReceiptDownloadButton } from "@/components/pdf/receipt-download-button";
 import { useConfirmandosSimple, usePagos, useCostoPorConcepto } from "@/hooks/use-data";
-import type { Confirmando, PaymentMethod } from "@/integrations/supabase/types";
-import { buildBalance, buildTotals } from "@/lib/balances";
+import type { PagoWithRelations, PaymentMethod } from "@/integrations/supabase/types";
+import { buildBalance, buildTotals, type BalanceRow } from "@/lib/balances";
 
 export const Route = createFileRoute("/app/pagos")({ component: PagosPage });
-
-interface BalanceRow extends Pick<Confirmando, "id" | "full_name"> {
-  abonado: number;
-  pendiente: number;
-  pct: number;
-}
 
 function PagosPage() {
   const { canSeePagos } = useAuth();
@@ -36,8 +31,6 @@ function PagosPage() {
   const [openPago, setOpenPago] = useState(false);
   const [costoMonto, setCostoMonto] = useState("");
   const [pagoForm, setPagoForm] = useState({ confirmando_id: "", monto: "", metodo: "efectivo", referencia: "", fecha: new Date().toISOString().slice(0, 10) });
-
-  if (!canSeePagos) return <Navigate to="/app" />;
 
   const { data: confirmandos = [], isLoading: loadingConfirmandos } = useConfirmandosSimple();
   const { data: pagos = [], isLoading: loadingPagos } = usePagos();
@@ -53,6 +46,11 @@ function PagosPage() {
   const { totalRecaudado, metaTotal, pendienteTotal } = useMemo(
     () => buildTotals(balances, retiroMonto, confirmandos.length),
     [balances, retiroMonto, confirmandos.length]
+  );
+
+  const confirmandoNameById = useMemo(
+    () => new Map(confirmandos.map((c) => [c.id, c.full_name])),
+    [confirmandos],
   );
 
   const saveCosto = useMutation({
@@ -89,6 +87,11 @@ function PagosPage() {
     onSuccess: () => { toast.success("Pago registrado"); qc.invalidateQueries({ queryKey: ["pagos"] }); setOpenPago(false); setPagoForm({ confirmando_id: "", monto: "", metodo: "efectivo", referencia: "", fecha: new Date().toISOString().slice(0, 10) }); },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  if (!canSeePagos) return <Navigate to="/app" />;
+
+  const resolveConfirmandoNombre = (p: PagoWithRelations) =>
+    p.confirmandos?.full_name || confirmandoNameById.get(p.confirmando_id) || "Confirmando";
 
   const handleExport = (kind: "xlsx" | "pdf") => {
     const data = balances.map((b) => ({ Confirmando: b.full_name, Total: costoMonto, Abonado: b.abonado, Pendiente: b.pendiente, Cumplimiento: `${Math.round(b.pct)}%` }));
@@ -180,12 +183,12 @@ function PagosPage() {
           {/* Desktop table */}
           <div className="hidden md:block overflow-x-auto">
             <Table>
-              <TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead>Confirmando</TableHead><TableHead>Monto</TableHead><TableHead>Método</TableHead><TableHead>Referencia</TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead>Confirmando</TableHead><TableHead>Monto</TableHead><TableHead>Método</TableHead><TableHead>Referencia</TableHead><TableHead className="text-right">Recibo</TableHead></TableRow></TableHeader>
               <TableBody>
                 {loadingPagos ? (
-                  <TableRow><TableCell colSpan={5} className="py-0"><TableSkeleton cols={5} rows={5} /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="py-0"><TableSkeleton cols={6} rows={5} /></TableCell></TableRow>
                 ) : pagos.length === 0 ? (
-                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">Sin pagos registrados</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">Sin pagos registrados</TableCell></TableRow>
                 ) : (
                   pagos.slice(0, 50).map((p) => (
                     <TableRow key={p.id}>
@@ -194,6 +197,16 @@ function PagosPage() {
                       <TableCell className="font-medium">{formatCurrency(p.monto)}</TableCell>
                       <TableCell className="capitalize">{p.metodo}</TableCell>
                       <TableCell className="text-muted-foreground">{p.referencia ?? "—"}</TableCell>
+                      <TableCell className="text-right">
+                        <ReceiptDownloadButton
+                          pagoId={p.id}
+                          monto={p.monto}
+                          fecha={p.fecha}
+                          metodo={p.metodo}
+                          concepto={p.concepto}
+                          confirmandoNombre={resolveConfirmandoNombre(p)}
+                        />
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -220,6 +233,16 @@ function PagosPage() {
                     <div className="flex items-start justify-between gap-2 text-sm"><span className="text-muted-foreground">Confirmando</span><span>{p.confirmandos?.full_name}</span></div>
                     <div className="flex items-start justify-between gap-2 text-sm"><span className="text-muted-foreground">Método</span><span className="capitalize">{p.metodo}</span></div>
                     <div className="flex items-start justify-between gap-2 text-sm"><span className="text-muted-foreground">Referencia</span><span className="text-muted-foreground">{p.referencia ?? "—"}</span></div>
+                    <div className="flex justify-end pt-1">
+                      <ReceiptDownloadButton
+                        pagoId={p.id}
+                        monto={p.monto}
+                        fecha={p.fecha}
+                        metodo={p.metodo}
+                        concepto={p.concepto}
+                        confirmandoNombre={resolveConfirmandoNombre(p)}
+                      />
+                    </div>
                   </CardContent>
                 </Card>
               ))

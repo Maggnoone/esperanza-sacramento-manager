@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import logoESP from "@/assets/logoESP.png";
 
 export function AppSidebar() {
   const { state, isMobile, setOpenMobile } = useSidebar();
@@ -70,7 +71,7 @@ export function AppSidebar() {
       <SidebarHeader className="border-b border-sidebar-border">
         <Link to="/app" className="flex items-center gap-2 px-2 py-2" onClick={handleNav}>
           <img
-            src="/src/assets/logoESP.png"
+            src={logoESP}
             alt="Esperanza de San Pablo"
             className="h-9 w-9 shrink-0 rounded-lg object-contain"
           />

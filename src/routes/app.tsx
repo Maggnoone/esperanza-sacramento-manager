@@ -1,8 +1,13 @@
-import { createFileRoute, Outlet, Navigate } from "@tanstack/react-router";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { useEffect, useState } from "react";
+import { createFileRoute, Outlet, Navigate, useRouterState } from "@tanstack/react-router";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { Loader2, Search } from "lucide-react";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { AppTopbar } from "@/components/app-topbar";
+import { CommandPalette } from "@/components/command-palette";
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2 } from "lucide-react";
+import { pageVariants } from "@/lib/motion";
 
 export const Route = createFileRoute("/app")({
   component: AppLayout,
@@ -10,6 +15,20 @@ export const Route = createFileRoute("/app")({
 
 function AppLayout() {
   const { user, loading } = useAuth();
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const reduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setPaletteOpen((current) => !current);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   if (loading) {
     return (
@@ -28,20 +47,42 @@ function AppLayout() {
           <a href="#main-content" className="skip-link">
             Saltar al contenido
           </a>
-          <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur">
-            <SidebarTrigger aria-label="Abrir menú lateral" />
-            <img
-              src="/src/assets/logoESP.png"
-              alt="Esperanza de San Pablo"
-              className="h-7 w-7 rounded-md object-contain opacity-80"
-            />
-            <div className="flex-1" />
-          </header>
-          <main id="main-content" className="flex-1 p-6 page-transition">
-            <Outlet />
+          <AppTopbar
+            onSearchClick={() => setPaletteOpen(true)}
+            searchSlot={
+              <button
+                type="button"
+                onClick={() => setPaletteOpen(true)}
+                className="hidden lg:flex h-10 w-[320px] items-center gap-2 rounded-full border border-border bg-card px-4 text-sm text-muted-foreground shadow-soft transition hover:shadow-elegant"
+              >
+                <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
+                <span className="flex-1 text-left">Buscar...</span>
+                <kbd className="pointer-events-none rounded border border-border bg-muted px-1.5 py-0.5 font-sans text-[10px] font-medium tracking-wide">
+                  ⌘K
+                </kbd>
+              </button>
+            }
+          />
+          <main id="main-content" className="flex-1 p-6">
+            {reduceMotion ? (
+              <Outlet />
+            ) : (
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={pathname}
+                  variants={pageVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                >
+                  <Outlet />
+                </motion.div>
+              </AnimatePresence>
+            )}
           </main>
         </div>
       </div>
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
     </SidebarProvider>
   );
 }

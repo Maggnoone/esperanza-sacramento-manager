@@ -15,6 +15,7 @@ import {
   DrawerFooter,
 } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
 interface ResponsiveDialogProps {
@@ -41,7 +42,7 @@ export function ResponsiveDialog({
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className={className}>
+        <DrawerContent className={cn("rounded-t-3xl", className)}>
           <DrawerHeader className="text-left">
             <DrawerTitle>{title}</DrawerTitle>
             {description && <DrawerDescription>{description}</DrawerDescription>}
@@ -61,7 +62,7 @@ export function ResponsiveDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={className}>
+      <DialogContent className={cn("rounded-3xl sm:rounded-3xl", className)}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}

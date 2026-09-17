@@ -2,6 +2,7 @@ import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Users, CalendarDays, Wallet, ShieldCheck, ArrowRight } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import logoESP from "@/assets/logoESP.png";
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -18,7 +19,7 @@ function Landing() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2">
             <img
-              src="/src/assets/logoESP.png"
+              src={logoESP}
               alt="Esperanza de San Pablo"
               className="h-9 w-9 rounded-lg object-contain"
             />
@@ -37,7 +38,7 @@ function Landing() {
 
       {/* Hero */}
       <section className="mx-auto max-w-6xl px-6 pt-20 pb-24">
-        <div className="mx-auto max-w-3xl text-center">
+        <div className="mx-auto max-w-3xl text-center motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-500">
           <span className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-xs font-medium text-gold-foreground">
             <Sparkles className="h-3 w-3" /> Movimiento Esperanza · Parroquia San Pablo
           </span>
@@ -81,10 +82,11 @@ function Landing() {
               t: "Pagos del Retiro",
               d: "Control financiero con saldos, métodos de pago y reportes exportables.",
             },
-          ].map((f) => (
+          ].map((f, index) => (
             <div
               key={f.t}
-              className="rounded-2xl border border-border/60 bg-card/80 p-6 shadow-soft backdrop-blur transition hover:shadow-elegant"
+              className="rounded-2xl border border-border/60 bg-card/80 p-6 shadow-soft backdrop-blur transition hover:shadow-elegant motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-500 motion-safe:fill-mode-backwards"
+              style={{ animationDelay: `${index * 60}ms` }}
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary text-primary">
                 <f.icon className="h-5 w-5" />

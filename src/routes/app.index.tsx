@@ -1,10 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { motion, useReducedMotion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, HeartHandshake, BookOpen, Wallet, ClipboardCheck, Sparkles } from "lucide-react";
+import { StatCard } from "@/components/StatCard";
+import {
+  Users,
+  HeartHandshake,
+  BookOpen,
+  Wallet,
+  ClipboardCheck,
+  Sparkles,
+  type LucideIcon,
+} from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { formatCurrency } from "@/lib/export";
+import { staggerContainer, staggerItem } from "@/lib/motion";
 import type { Confirmando, Asistencia, Pago, CostoRetiro } from "@/integrations/supabase/types";
 import {
   PieChart,
@@ -14,6 +25,7 @@ import {
   Tooltip as RechartsTooltip,
   Legend,
 } from "recharts";
+import logoESP from "@/assets/logoESP.png";
 
 export const Route = createFileRoute("/app/")({
   component: Dashboard,
@@ -31,8 +43,17 @@ interface DashboardStats {
   statusCounts: { name: string; value: number; color: string }[];
 }
 
+interface KpiCard {
+  label: string;
+  value: number;
+  format?: (value: number) => string;
+  icon: LucideIcon;
+  hint?: string;
+}
+
 function Dashboard() {
   const { user, roles, canSeePagos } = useAuth();
+  const reduceMotion = useReducedMotion();
 
   const { data: stats } = useQuery<DashboardStats>({
     queryKey: ["dashboard-stats", canSeePagos],
@@ -68,22 +89,22 @@ function Dashboard() {
         {
           name: "Activo",
           value: dataConf.filter((c) => c.status === "activo").length,
-          color: "#00d729",
+          color: "#0d9488",
         },
         {
           name: "Apto",
           value: dataConf.filter((c) => c.status === "apto").length,
-          color: "#ffea00",
+          color: "#fbbf24",
         },
         {
           name: "Confirmado",
           value: dataConf.filter((c) => c.status === "confirmado").length,
-          color: "#451b04",
+          color: "#059669",
         },
         {
           name: "Baja",
           value: dataConf.filter((c) => c.status === "baja").length,
-          color: "#ded9dc",
+          color: "#8ba39d",
         },
       ].filter((s) => s.value > 0);
       return {
@@ -100,7 +121,7 @@ function Dashboard() {
     },
   });
 
-  const cards = [
+  const cards: KpiCard[] = [
     {
       label: "Confirmandos",
       value: stats?.totalConf ?? 0,
@@ -127,7 +148,8 @@ function Dashboard() {
     },
     {
       label: "Asistencia promedio",
-      value: `${stats?.asistPct ?? 0}%`,
+      value: stats?.asistPct ?? 0,
+      format: (n) => `${Math.round(n)}%`,
       icon: ClipboardCheck,
       hint: "De todos los encuentros",
     },
@@ -135,13 +157,24 @@ function Dashboard() {
       ? [
           {
             label: "Recaudado retiro",
-            value: formatCurrency(stats?.recaudado ?? 0),
+            value: stats?.recaudado ?? 0,
+            format: formatCurrency,
             icon: Wallet,
             hint: `Pendiente: ${formatCurrency(stats?.pendiente ?? 0)}`,
           },
         ]
       : []),
   ];
+
+  const renderKpiCard = (card: KpiCard) => (
+    <StatCard
+      label={card.label}
+      value={card.value}
+      format={card.format}
+      icon={card.icon}
+      hint={card.hint}
+    />
+  );
 
   return (
     <div className="mx-auto max-w-7xl space-y-8">
@@ -163,22 +196,26 @@ function Dashboard() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {cards.map((c) => (
-          <Card key={c.label} className="shadow-soft transition hover:shadow-elegant">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{c.label}</CardTitle>
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary text-primary">
-                <c.icon className="h-4 w-4" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="font-display text-3xl font-semibold">{c.value}</div>
-              <p className="mt-1 text-xs text-muted-foreground">{c.hint}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {reduceMotion ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {cards.map((c) => (
+            <div key={c.label}>{renderKpiCard(c)}</div>
+          ))}
+        </div>
+      ) : (
+        <motion.div
+          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+          variants={staggerContainer}
+          initial="hidden"
+          animate="visible"
+        >
+          {cards.map((c) => (
+            <motion.div key={c.label} variants={staggerItem}>
+              {renderKpiCard(c)}
+            </motion.div>
+          ))}
+        </motion.div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="shadow-soft">
@@ -218,7 +255,7 @@ function Dashboard() {
         <Card className="bg-gradient-hero shadow-soft">
           <CardContent className="flex items-center gap-4 p-6">
             <img
-              src="/src/assets/logoESP.png"
+              src={logoESP}
               alt="Esperanza de San Pablo"
               className="h-12 w-12 rounded-xl object-contain shadow-glow"
             />

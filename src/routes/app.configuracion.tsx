@@ -29,8 +29,6 @@ function ConfigPage() {
   const [openRol, setOpenRol] = useState(false);
   const [rolForm, setRolForm] = useState({ user_id: "", role: "catequista" as AppRole });
 
-  if (!isAdmin) return <Navigate to="/app" />;
-
   const { data: grupos = [], isLoading: loadingGrupos } = useGrupos();
   const { data: profiles = [], isLoading: loadingProfiles } = useProfiles();
   const { data: roles = [] } = useUserRoles();
@@ -60,6 +58,8 @@ function ConfigPage() {
     onSuccess: () => { toast.success("Eliminado"); qc.invalidateQueries({ queryKey: ["user-roles"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  if (!isAdmin) return <Navigate to="/app" />;
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
