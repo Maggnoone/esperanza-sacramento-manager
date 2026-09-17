@@ -16,10 +16,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Search, Download, Pencil, Trash2, FileSpreadsheet, FileText, FileType, Inbox, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Search, Download, Pencil, Trash2, FileSpreadsheet, FileText, FileType, Inbox } from "lucide-react";
 import { FieldError } from "@/components/FieldError";
 import { TableSkeleton } from "@/components/TableSkeleton";
 import { DeleteDialog } from "@/components/DeleteDialog";
+import { ListPagination, LIST_PAGE_SIZE } from "@/components/ListPagination";
 import { toast } from "sonner";
 import { exportToCSV, exportToPDF, exportToXLSX } from "@/lib/export";
 import { useAuth } from "@/hooks/use-auth";
@@ -58,7 +59,7 @@ function ConfirmandosPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ConfirmandoWithRelations | null>(null);
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = LIST_PAGE_SIZE;
 
   const { data: rows = [], isLoading } = useConfirmandos();
   const { data: grupos = [] } = useGruposSimple();
@@ -154,7 +155,8 @@ function ConfirmandosPage() {
   });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const currentPage = Math.min(page, totalPages);
+  const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const exportData = () =>
     filtered.map((r) => ({
@@ -212,9 +214,23 @@ function ConfirmandosPage() {
           <div className="flex flex-wrap gap-2">
             <div className="relative flex-1 min-w-[180px]">
               <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por nombre o DNI" className="w-full sm:w-64 pl-8" />
+              <Input
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="Buscar por nombre o DNI"
+                className="w-full sm:w-64 pl-8"
+              />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select
+              value={statusFilter}
+              onValueChange={(v) => {
+                setStatusFilter(v);
+                setPage(1);
+              }}
+            >
               <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos los estados</SelectItem>
@@ -364,36 +380,13 @@ function ConfirmandosPage() {
               ))
             )}
           </div>
-          {filtered.length > pageSize && (
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-6 py-3">
-              <p className="text-xs sm:text-sm text-muted-foreground">
-                {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filtered.length)} / {filtered.length}
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  aria-label="Página anterior"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="text-sm">
-                  {page} / {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                  aria-label="Página siguiente"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          )}
+          <ListPagination
+            page={currentPage}
+            totalPages={totalPages}
+            total={filtered.length}
+            itemLabel="confirmandos"
+            onPageChange={setPage}
+          />
         </CardContent>
       </Card>
 

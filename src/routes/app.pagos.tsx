@@ -18,6 +18,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { formatCurrency, formatDate, exportToXLSX, exportToPDF } from "@/lib/export";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ReceiptDownloadButton } from "@/components/pdf/receipt-download-button";
+import { ListPagination, LIST_PAGE_SIZE } from "@/components/ListPagination";
 import { useConfirmandosSimple, usePagos, useCostoPorConcepto } from "@/hooks/use-data";
 import type { PagoWithRelations, PaymentMethod } from "@/integrations/supabase/types";
 import { buildBalance, buildTotals, type BalanceRow } from "@/lib/balances";
@@ -41,6 +42,22 @@ function PagosPage() {
   const balances = useMemo<BalanceRow[]>(
     () => buildBalance(pagos, confirmandos, retiroMonto),
     [pagos, confirmandos, retiroMonto]
+  );
+
+  const [balancePage, setBalancePage] = useState(1);
+  const balanceTotalPages = Math.max(1, Math.ceil(balances.length / LIST_PAGE_SIZE));
+  const balanceCurrentPage = Math.min(balancePage, balanceTotalPages);
+  const paginatedBalances = balances.slice(
+    (balanceCurrentPage - 1) * LIST_PAGE_SIZE,
+    balanceCurrentPage * LIST_PAGE_SIZE,
+  );
+
+  const [txPage, setTxPage] = useState(1);
+  const txTotalPages = Math.max(1, Math.ceil(pagos.length / LIST_PAGE_SIZE));
+  const txCurrentPage = Math.min(txPage, txTotalPages);
+  const paginatedPagos = pagos.slice(
+    (txCurrentPage - 1) * LIST_PAGE_SIZE,
+    txCurrentPage * LIST_PAGE_SIZE,
   );
 
   const { totalRecaudado, metaTotal, pendienteTotal } = useMemo(
@@ -140,7 +157,7 @@ function PagosPage() {
                 ) : balances.length === 0 ? (
                   <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">No hay confirmandos registrados.</TableCell></TableRow>
                 ) : (
-                  balances.map((b) => (
+                  paginatedBalances.map((b) => (
                     <TableRow key={b.id}>
                       <TableCell className="font-medium">{b.full_name}</TableCell>
                       <TableCell>{formatCurrency(b.abonado)}</TableCell>
@@ -162,7 +179,7 @@ function PagosPage() {
             ) : balances.length === 0 ? (
               <p className="text-center text-muted-foreground py-6">No hay confirmandos registrados.</p>
             ) : (
-              balances.map((b) => (
+              paginatedBalances.map((b) => (
                 <Card key={b.id} className="shadow-soft">
                   <CardContent className="p-4 space-y-2">
                     <span className="font-semibold">{b.full_name}</span>
@@ -174,6 +191,13 @@ function PagosPage() {
               ))
             )}
           </div>
+          <ListPagination
+            page={balanceCurrentPage}
+            totalPages={balanceTotalPages}
+            total={balances.length}
+            itemLabel="confirmandos"
+            onPageChange={setBalancePage}
+          />
         </CardContent>
       </Card>
 
@@ -190,7 +214,7 @@ function PagosPage() {
                 ) : pagos.length === 0 ? (
                   <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">Sin pagos registrados</TableCell></TableRow>
                 ) : (
-                  pagos.slice(0, 50).map((p) => (
+                  paginatedPagos.map((p) => (
                     <TableRow key={p.id}>
                       <TableCell>{formatDate(p.fecha)}</TableCell>
                       <TableCell>{p.confirmandos?.full_name}</TableCell>
@@ -223,7 +247,7 @@ function PagosPage() {
             ) : pagos.length === 0 ? (
               <p className="text-center text-muted-foreground py-6">Sin pagos registrados</p>
             ) : (
-              pagos.slice(0, 20).map((p) => (
+              paginatedPagos.map((p) => (
                 <Card key={p.id} className="shadow-soft">
                   <CardContent className="p-4 space-y-2">
                     <div className="flex items-center justify-between">
@@ -248,6 +272,13 @@ function PagosPage() {
               ))
             )}
           </div>
+          <ListPagination
+            page={txCurrentPage}
+            totalPages={txTotalPages}
+            total={pagos.length}
+            itemLabel="transacciones"
+            onPageChange={setTxPage}
+          />
         </CardContent>
       </Card>
 

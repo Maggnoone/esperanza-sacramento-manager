@@ -296,3 +296,160 @@
     }
   }
 }
+
+/* ==========================================================================
+ * Sidebar rail — floating card rail, restyled from the outside.
+ *
+ * Marker classes (kept literal in src/components/AppSidebar.tsx):
+ *   .sidebar-rail       → the fixed Sidebar container
+ *   .sidebar-rail-item  → interactive rows (nav, brand, user chip, logout)
+ *   .sidebar-label      → text revealed with fade + slide while hovering
+ *
+ * src/components/ui/sidebar.tsx is not modified. The unlayered rules below win
+ * over Tailwind's layered utilities; the `!important` row sizing lives inside
+ * `@layer utilities` so it can also beat the primitive's `!size-8` / `!p-2`
+ * important utilities.
+ * ========================================================================== */
+
+:root {
+  /* Rail motion. Tune these two values to make the expand feel softer or snappier. */
+  --sidebar-rail-duration: 480ms;
+  --sidebar-rail-ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.sidebar-rail {
+  /* Floating-card geometry. `cn`/tailwind-merge drops the primitive's `h-svh`
+     (same group as the JSX `h-auto`) and Tailwind's utility order lets
+     `top-3`/`bottom-3` win over `inset-y-0`, so the JSX classes already win.
+     These pinned values are a defensive guarantee of the 12px floating gutter. */
+  top: 0.75rem;
+  bottom: 0.75rem;
+  height: auto;
+  /* Sit above the sticky topbar (z-40) so the expanded rail stays visible;
+     still below modals/sheets (z-50). */
+  z-index: 45;
+  border-right-width: 0;
+  transition-duration: var(--sidebar-rail-duration);
+  transition-timing-function: var(--sidebar-rail-ease);
+}
+
+/* The spacer must animate in lockstep with the rail when pinning or unpinning
+   the sidebar; otherwise the content column settles before the card finishes
+   and the two edges visibly desync. */
+[data-collapsible] > div:first-child {
+  transition-duration: var(--sidebar-rail-duration);
+  transition-timing-function: var(--sidebar-rail-ease);
+}
+
+.sidebar-rail > [data-sidebar="sidebar"] {
+  border-radius: 1.5rem;
+  border: 1px solid var(--sidebar-border);
+  box-shadow: var(--shadow-soft-token);
+  overflow: hidden;
+}
+
+.sidebar-label {
+  transition: opacity 260ms ease-out, transform 260ms ease-out;
+}
+
+/* REST state — applies on every ≥768px viewport, including touch-only devices
+   that never match `(hover: hover)`. Without this split the rail would fall
+   back to the primitive's 3rem width and clip the rows. */
+@media (min-width: 768px) {
+  /* 88px rail at rest. */
+  [data-collapsible="icon"] {
+    --sidebar-width-icon: 5.5rem;
+  }
+
+  /* Center rail content horizontally. */
+  [data-collapsible="icon"] .sidebar-rail [data-sidebar="header"],
+  [data-collapsible="icon"] .sidebar-rail [data-sidebar="menu"],
+  [data-collapsible="icon"] .sidebar-rail [data-sidebar="footer"] {
+    align-items: center;
+  }
+
+  /* Labels hidden at rest. */
+  [data-collapsible="icon"] .sidebar-rail .sidebar-label {
+    opacity: 0;
+    transform: translateX(-0.25rem);
+  }
+
+  /* Group labels stay collapsed at rest; icon mode force-hides them with
+     `-mt-8` / `opacity-0`. */
+  [data-collapsible="icon"] .sidebar-rail [data-sidebar="group-label"] {
+    margin-top: -2rem;
+    opacity: 0;
+  }
+
+  /* Keep a long nav scrollable while collapsed (icon mode sets
+     `overflow-hidden` on the content). */
+  [data-collapsible="icon"] .sidebar-rail [data-sidebar="content"] {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  /* Keyboard users: focusing anything inside the rail reveals labels. This is
+     intentionally NOT gated by `(hover: hover)` so touch-only + keyboard
+     devices can still read the rail. Mirrors the hover reveal below. */
+  [data-collapsible="icon"]:focus-within .sidebar-rail {
+    width: 15.5rem;
+  }
+  [data-collapsible="icon"]:focus-within .sidebar-rail .sidebar-label {
+    opacity: 1;
+    transform: translateX(0);
+    transition-delay: 160ms;
+  }
+  [data-collapsible="icon"]:focus-within .sidebar-rail [data-sidebar="group-label"] {
+    margin-top: 0;
+    opacity: 1;
+    transition-delay: 160ms;
+  }
+}
+
+/* HOVER state — pointer devices only. Kept separate from the rest rules so
+   touch-only ≥768px devices keep the full rail and use `:focus-within`.
+   Hover expands only the fixed container (overlay); the spacer keeps its 88px,
+   so the content column — and Recharts' ResponsiveContainer — never reflows. */
+@media (min-width: 768px) and (hover: hover) {
+  [data-collapsible="icon"]:hover .sidebar-rail {
+    width: 15.5rem;
+  }
+  [data-collapsible="icon"]:hover .sidebar-rail .sidebar-label {
+    opacity: 1;
+    transform: translateX(0);
+    transition-delay: 160ms;
+  }
+  [data-collapsible="icon"]:hover .sidebar-rail [data-sidebar="group-label"] {
+    margin-top: 0;
+    opacity: 1;
+    transition-delay: 160ms;
+  }
+}
+
+/* Row sizing must beat the primitive's `!size-8` / `!p-2` important utilities.
+   Same `utilities` layer + higher specificity keeps this deterministic. */
+@layer utilities {
+  /* Rest sizing — every ≥768px viewport, including touch-only devices. */
+  @media (min-width: 768px) {
+    [data-collapsible="icon"] .sidebar-rail .sidebar-rail-item {
+      width: 2.75rem !important;
+      height: 2.75rem !important;
+      padding: 0 !important;
+      gap: 0 !important;
+      overflow: hidden;
+      /* Match the rail so rows glide with the card instead of snapping. */
+      transition-duration: var(--sidebar-rail-duration);
+      transition-timing-function: var(--sidebar-rail-ease);
+    }
+    /* Keyboard expansion. */
+    [data-collapsible="icon"]:focus-within .sidebar-rail .sidebar-rail-item {
+      width: 12.5rem !important;
+    }
+  }
+  /* Pointer-only expansion. */
+  @media (min-width: 768px) and (hover: hover) {
+    [data-collapsible="icon"]:hover .sidebar-rail .sidebar-rail-item {
+      width: 12.5rem !important;
+    }
+  }
+}

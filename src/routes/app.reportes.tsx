@@ -17,6 +17,11 @@ import {
   useCostoPorConcepto,
 } from "@/hooks/use-data";
 import { buildBalance, buildTotals } from "@/lib/balances";
+import { buildAttendanceTrendFromResumen } from "@/lib/dashboard-chart-data";
+import { buildPaymentMethodBreakdown, buildPaymentStatusBreakdown } from "@/lib/payment-chart-data";
+import { AttendanceTrendChart } from "@/components/dashboard/attendance-trend-chart";
+import { CategoryDonutChart } from "@/components/dashboard/category-donut-chart";
+import { ListPagination, LIST_PAGE_SIZE } from "@/components/ListPagination";
 import { exportToCSV, exportToXLSX, exportToPDF, formatCurrency, formatDate } from "@/lib/export";
 import {
   ClipboardList,
@@ -63,12 +68,20 @@ function runExport(
   }
 }
 
+const compactCurrency = new Intl.NumberFormat("es-AR", {
+  style: "currency",
+  currency: "ARS",
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
+
 /* ================================================================== */
 /*  Asistencia                                                        */
 /* ================================================================== */
 
 function AsistenciaSection() {
   const [subTab, setSubTab] = useState<"charla" | "confirmando">("charla");
+  const [page, setPage] = useState(1);
   const { data: charlas = [], isLoading: loadingCharlas } = useAsistenciaResumen();
   const { data: confirmandos = [], isLoading: loadingConf } = useAsistenciaPorConfirmando();
   const { data: grupos = [] } = useGruposSimple();
@@ -83,6 +96,25 @@ function AsistenciaSection() {
     if (!groupFilter) return confirmandos;
     return confirmandos.filter((c) => c.grupo === groupFilter);
   }, [confirmandos, groupFilter]);
+
+  const attendanceTrend = useMemo(
+    () => buildAttendanceTrendFromResumen(filteredCharlas),
+    [filteredCharlas],
+  );
+
+  const charlaTotalPages = Math.max(1, Math.ceil(filteredCharlas.length / LIST_PAGE_SIZE));
+  const charlaPage = Math.min(page, charlaTotalPages);
+  const charlasPaginated = filteredCharlas.slice(
+    (charlaPage - 1) * LIST_PAGE_SIZE,
+    charlaPage * LIST_PAGE_SIZE,
+  );
+
+  const confTotalPages = Math.max(1, Math.ceil(filteredConfirmandos.length / LIST_PAGE_SIZE));
+  const confPage = Math.min(page, confTotalPages);
+  const confirmandosPaginated = filteredConfirmandos.slice(
+    (confPage - 1) * LIST_PAGE_SIZE,
+    confPage * LIST_PAGE_SIZE,
+  );
 
   const exportRowsCharla = () =>
     filteredCharlas.map((c) => ({
@@ -113,7 +145,10 @@ function AsistenciaSection() {
           <Button
             size="sm"
             variant={subTab === "charla" ? "default" : "outline"}
-            onClick={() => setSubTab("charla")}
+            onClick={() => {
+              setSubTab("charla");
+              setPage(1);
+            }}
           >
             <Calendar className="mr-2 h-4 w-4" />
             Por charla
@@ -121,7 +156,10 @@ function AsistenciaSection() {
           <Button
             size="sm"
             variant={subTab === "confirmando" ? "default" : "outline"}
-            onClick={() => setSubTab("confirmando")}
+            onClick={() => {
+              setSubTab("confirmando");
+              setPage(1);
+            }}
           >
             <Users className="mr-2 h-4 w-4" />
             Por confirmando
@@ -131,7 +169,10 @@ function AsistenciaSection() {
           <select
             className="rounded-md border bg-background px-2 py-1 text-sm max-w-full"
             value={groupFilter}
-            onChange={(e) => setGroupFilter(e.target.value)}
+            onChange={(e) => {
+              setGroupFilter(e.target.value);
+              setPage(1);
+            }}
           >
             <option value="">Todos los grupos</option>
             {grupos.map((g) => (
@@ -156,6 +197,8 @@ function AsistenciaSection() {
           </Button>
         </div>
       </div>
+
+      <AttendanceTrendChart data={attendanceTrend} isLoading={loadingCharlas} />
 
       {/* ── Por charla ── */}
       {subTab === "charla" && (
@@ -189,7 +232,7 @@ function AsistenciaSection() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredCharlas.map((c) => (
+                  charlasPaginated.map((c) => (
                     <TableRow key={c.charla_id}>
                       <TableCell className="font-medium">{c.titulo}</TableCell>
                       <TableCell>{formatDate(c.fecha)}</TableCell>
@@ -217,7 +260,7 @@ function AsistenciaSection() {
                     </CardContent>
                   </Card>
                 ))
-              : filteredCharlas.map((c) => (
+              : charlasPaginated.map((c) => (
                   <Card key={c.charla_id} className="shadow-soft">
                     <CardContent className="p-4 space-y-2">
                       <div className="flex items-center justify-between">
@@ -242,6 +285,13 @@ function AsistenciaSection() {
                   </Card>
                 ))}
           </div>
+          <ListPagination
+            page={charlaPage}
+            totalPages={charlaTotalPages}
+            total={filteredCharlas.length}
+            itemLabel="charlas"
+            onPageChange={setPage}
+          />
         </div>
       )}
 
@@ -276,7 +326,7 @@ function AsistenciaSection() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredConfirmandos.map((c) => (
+                  confirmandosPaginated.map((c) => (
                     <TableRow key={c.confirmando_id}>
                       <TableCell className="font-medium">{c.full_name}</TableCell>
                       <TableCell>{c.grupo ?? "—"}</TableCell>
@@ -303,7 +353,7 @@ function AsistenciaSection() {
                     </CardContent>
                   </Card>
                 ))
-              : filteredConfirmandos.map((c) => (
+              : confirmandosPaginated.map((c) => (
                   <Card key={c.confirmando_id} className="shadow-soft">
                     <CardContent className="p-4 space-y-2">
                       <div className="flex items-center justify-between">
@@ -328,6 +378,13 @@ function AsistenciaSection() {
                   </Card>
                 ))}
           </div>
+          <ListPagination
+            page={confPage}
+            totalPages={confTotalPages}
+            total={filteredConfirmandos.length}
+            itemLabel="confirmandos"
+            onPageChange={setPage}
+          />
         </div>
       )}
     </div>
@@ -339,20 +396,43 @@ function AsistenciaSection() {
 /* ================================================================== */
 
 function PagosSection() {
+  const { canSeePagos } = useAuth();
   const [subTab, setSubTab] = useState<"retiro" | "boleta">("retiro");
+  const [page, setPage] = useState(1);
   const concepto = subTab;
+  const conceptOf = subTab === "retiro" ? "del Retiro" : "de la Boleta";
   const { data: pagos = [], isLoading: loadingPagos } = usePagosPorConcepto(concepto);
   const { data: costo } = useCostoPorConcepto(concepto);
   const { data: confirmandos = [] } = useConfirmandos();
+  const costMonto = Number(costo?.monto ?? 0);
+  const costConfigured = costMonto > 0;
 
   const balances = useMemo(
-    () => buildBalance(pagos, confirmandos, Number(costo?.monto ?? 0)),
-    [pagos, confirmandos, costo]
+    () => buildBalance(pagos, confirmandos, costMonto),
+    [pagos, confirmandos, costMonto]
   );
   const { totalRecaudado, metaTotal, pendienteTotal } = useMemo(
-    () => buildTotals(balances, Number(costo?.monto ?? 0), confirmandos.length),
-    [balances, costo, confirmandos.length]
+    () => buildTotals(balances, costMonto, confirmandos.length),
+    [balances, costMonto, confirmandos.length]
   );
+  const paymentStatus = useMemo(
+    () => buildPaymentStatusBreakdown(balances, costMonto),
+    [balances, costMonto],
+  );
+  const paymentMethods = useMemo(() => buildPaymentMethodBreakdown(pagos), [pagos]);
+
+  if (!canSeePagos) {
+    return (
+      <Card className="shadow-soft">
+        <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+          <p className="font-medium text-foreground">Acceso restringido</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            No tenés permisos para ver la información de pagos.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const exportRows = () =>
     balances.map((b) => ({
@@ -363,6 +443,13 @@ function PagosSection() {
       "%": `${Math.round(b.pct)}%`,
     }));
 
+  const totalPages = Math.max(1, Math.ceil(balances.length / LIST_PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedBalances = balances.slice(
+    (currentPage - 1) * LIST_PAGE_SIZE,
+    currentPage * LIST_PAGE_SIZE,
+  );
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -370,7 +457,10 @@ function PagosSection() {
           <Button
             size="sm"
             variant={subTab === "retiro" ? "default" : "outline"}
-            onClick={() => setSubTab("retiro")}
+            onClick={() => {
+              setSubTab("retiro");
+              setPage(1);
+            }}
           >
             <Wallet className="mr-2 h-4 w-4" />
             Retiro
@@ -378,7 +468,10 @@ function PagosSection() {
           <Button
             size="sm"
             variant={subTab === "boleta" ? "default" : "outline"}
-            onClick={() => setSubTab("boleta")}
+            onClick={() => {
+              setSubTab("boleta");
+              setPage(1);
+            }}
           >
             <ClipboardCheck className="mr-2 h-4 w-4" />
             Boleta
@@ -439,6 +532,44 @@ function PagosSection() {
         </Card>
       </div>
 
+      {/* Charts */}
+      <div className="grid min-w-0 gap-4 lg:grid-cols-2">
+        <CategoryDonutChart
+          data={paymentStatus}
+          isLoading={loadingPagos}
+          title="Estado de pago"
+          description={`Distribución de confirmandos según su pago ${conceptOf}.`}
+          emptyTitle={
+            costConfigured ? "Sin confirmandos para mostrar" : `Costo ${conceptOf} sin configurar`
+          }
+          emptyDescription={
+            costConfigured
+              ? "La distribución aparecerá cuando haya confirmandos registrados."
+              : `Configurá el costo ${conceptOf} para que este gráfico aplique.`
+          }
+          centerLabel="confirmandos"
+          tooltipValueFormatter={(value) => `${value} confirmandos`}
+          summaryUnit="confirmandos"
+          legendAriaLabel="Detalle por estado de pago"
+          showPercentage
+        />
+        <CategoryDonutChart
+          data={paymentMethods}
+          isLoading={loadingPagos}
+          title="Métodos de pago"
+          description={`Recaudación ${conceptOf} según el método utilizado.`}
+          emptyTitle="Sin pagos registrados"
+          emptyDescription="La distribución aparecerá cuando se registren pagos."
+          centerLabel="recaudado"
+          centerValueFormatter={(total) => compactCurrency.format(total)}
+          tooltipValueFormatter={(value) => formatCurrency(value)}
+          valueFormatter={(value) => formatCurrency(value)}
+          summaryText={(total) => `Recaudación total: ${formatCurrency(total)}`}
+          legendAriaLabel="Detalle por método de pago"
+          showPercentage
+        />
+      </div>
+
       {/* Balance table */}
       <Card className="shadow-soft">
         <CardHeader>
@@ -471,7 +602,7 @@ function PagosSection() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  balances.map((b) => (
+                  paginatedBalances.map((b) => (
                     <TableRow key={b.id}>
                       <TableCell className="font-medium">{b.full_name}</TableCell>
                       <TableCell>{formatCurrency(b.abonado)}</TableCell>
@@ -501,7 +632,7 @@ function PagosSection() {
                     </CardContent>
                   </Card>
                 ))
-              : balances.map((b) => (
+              : paginatedBalances.map((b) => (
                   <Card key={b.id} className="shadow-soft">
                     <CardContent className="p-4 space-y-2">
                       <span className="font-semibold">{b.full_name}</span>
@@ -523,6 +654,13 @@ function PagosSection() {
                   </Card>
                 ))}
           </div>
+          <ListPagination
+            page={currentPage}
+            totalPages={totalPages}
+            total={balances.length}
+            itemLabel="confirmandos"
+            onPageChange={setPage}
+          />
         </CardContent>
       </Card>
     </div>
@@ -535,6 +673,7 @@ function PagosSection() {
 
 function RequisitosSection() {
   const [subTab, setSubTab] = useState<"confirmando" | "padrino">("confirmando");
+  const [page, setPage] = useState(1);
   const { data: confirmandos = [], isLoading: loadingConf } = useConfirmandos();
   const { data: padrinos = [], isLoading: loadingPadrinos } = usePadrinos();
   const { data: asistencias = [], isLoading: loadingAsist } = useAsistenciaPorConfirmando();
@@ -546,6 +685,20 @@ function RequisitosSection() {
     [pagos, confirmandos, costo]
   );
 
+  const confTotalPages = Math.max(1, Math.ceil(confirmandos.length / LIST_PAGE_SIZE));
+  const confPage = Math.min(page, confTotalPages);
+  const confirmandosPaginated = confirmandos.slice(
+    (confPage - 1) * LIST_PAGE_SIZE,
+    confPage * LIST_PAGE_SIZE,
+  );
+
+  const padTotalPages = Math.max(1, Math.ceil(padrinos.length / LIST_PAGE_SIZE));
+  const padPage = Math.min(page, padTotalPages);
+  const padrinosPaginated = padrinos.slice(
+    (padPage - 1) * LIST_PAGE_SIZE,
+    padPage * LIST_PAGE_SIZE,
+  );
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -553,7 +706,10 @@ function RequisitosSection() {
           <Button
             size="sm"
             variant={subTab === "confirmando" ? "default" : "outline"}
-            onClick={() => setSubTab("confirmando")}
+            onClick={() => {
+              setSubTab("confirmando");
+              setPage(1);
+            }}
           >
             <Users className="mr-2 h-4 w-4" />
             Confirmandos
@@ -561,7 +717,10 @@ function RequisitosSection() {
           <Button
             size="sm"
             variant={subTab === "padrino" ? "default" : "outline"}
-            onClick={() => setSubTab("padrino")}
+            onClick={() => {
+              setSubTab("padrino");
+              setPage(1);
+            }}
           >
             <Users className="mr-2 h-4 w-4" />
             Padrinos
@@ -601,7 +760,7 @@ function RequisitosSection() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  confirmandos.map((c) => {
+                  confirmandosPaginated.map((c) => {
                     const datosOk = !!(c.dni && c.direccion && c.contacto_padres);
                     const asistPct = asistencias.find((a) => a.confirmando_id === c.id)?.pct ?? 0;
                     const pagoOk =
@@ -633,7 +792,7 @@ function RequisitosSection() {
                     </CardContent>
                   </Card>
                 ))
-              : confirmandos.map((c) => {
+              : confirmandosPaginated.map((c) => {
                   const datosOk = !!(c.dni && c.direccion && c.contacto_padres);
                   const asistPct = asistencias.find((a) => a.confirmando_id === c.id)?.pct ?? 0;
                   const pagoOk = (balances.find((b) => b.id === c.id)?.pct ?? 0) >= 100;
@@ -672,6 +831,13 @@ function RequisitosSection() {
                   );
                 })}
           </div>
+          <ListPagination
+            page={confPage}
+            totalPages={confTotalPages}
+            total={confirmandos.length}
+            itemLabel="confirmandos"
+            onPageChange={setPage}
+          />
         </div>
       )}
 
@@ -704,7 +870,7 @@ function RequisitosSection() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  padrinos.map((p) => {
+                  padrinosPaginated.map((p) => {
                     const datosOk = !!(p.dni && p.telefono && p.email);
                     return (
                       <TableRow key={p.id}>
@@ -730,7 +896,7 @@ function RequisitosSection() {
                     </CardContent>
                   </Card>
                 ))
-              : padrinos.map((p) => {
+              : padrinosPaginated.map((p) => {
                   const datosOk = !!(p.dni && p.telefono && p.email);
                   return (
                     <Card key={p.id} className="shadow-soft">
@@ -757,6 +923,13 @@ function RequisitosSection() {
                   );
                 })}
           </div>
+          <ListPagination
+            page={padPage}
+            totalPages={padTotalPages}
+            total={padrinos.length}
+            itemLabel="padrinos"
+            onPageChange={setPage}
+          />
         </div>
       )}
     </div>

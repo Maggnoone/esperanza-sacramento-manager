@@ -19,6 +19,7 @@ import { Plus, Pencil, Trash2, Inbox } from "lucide-react";
 import { DeleteDialog } from "@/components/DeleteDialog";
 import { TableSkeleton } from "@/components/TableSkeleton";
 import { FieldError } from "@/components/FieldError";
+import { ListPagination, LIST_PAGE_SIZE } from "@/components/ListPagination";
 import { toast } from "sonner";
 import { formatDateTime } from "@/lib/export";
 import { useAuth } from "@/hooks/use-auth";
@@ -45,6 +46,11 @@ function CharlasPage() {
   const [editing, setEditing] = useState<Charla | null>(null);
 
   const { data: rows = [], isLoading } = useCharlas();
+
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(rows.length / LIST_PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paginated = rows.slice((currentPage - 1) * LIST_PAGE_SIZE, currentPage * LIST_PAGE_SIZE);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -122,7 +128,7 @@ function CharlasPage() {
                       <Button size="sm" variant="outline" onClick={openNew}><Plus className="mr-2 h-4 w-4" />Nueva sesión</Button>
                     </div>
                   </TableCell></TableRow>
-                ) : rows.map((r) => (
+                ) : paginated.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell>{formatDateTime(r.fecha)}</TableCell>
                     <TableCell className="font-medium">{r.titulo}</TableCell>
@@ -166,7 +172,7 @@ function CharlasPage() {
                 </div>
               </div>
             ) : (
-              rows.map((r) => (
+              paginated.map((r) => (
                 <Card key={r.id} className="shadow-soft">
                   <CardContent className="p-4 space-y-2">
                     <div className="flex items-center justify-between">
@@ -197,6 +203,13 @@ function CharlasPage() {
               ))
             )}
           </div>
+          <ListPagination
+            page={currentPage}
+            totalPages={totalPages}
+            total={rows.length}
+            itemLabel="sesiones"
+            onPageChange={setPage}
+          />
         </CardContent>
       </Card>
 

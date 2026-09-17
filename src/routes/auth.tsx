@@ -89,7 +89,7 @@ function AuthPage() {
             <div className="leading-tight">
               <p className="font-display text-xl font-semibold">Esperanza de San Pablo</p>
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                Movimiento San Pablo
+                Una Confirmación de Fe
               </p>
             </div>
           </Link>

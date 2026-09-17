@@ -17,6 +17,7 @@ import { Plus, Pencil, Trash2, Download, Inbox } from "lucide-react";
 import { DeleteDialog } from "@/components/DeleteDialog";
 import { FieldError } from "@/components/FieldError";
 import { TableSkeleton } from "@/components/TableSkeleton";
+import { ListPagination, LIST_PAGE_SIZE } from "@/components/ListPagination";
 import { toast } from "sonner";
 import { exportToXLSX } from "@/lib/export";
 import { useAuth } from "@/hooks/use-auth";
@@ -44,6 +45,11 @@ function PadrinosPage() {
   const [editing, setEditing] = useState<Padrino | null>(null);
 
   const { data: rows = [], isLoading } = usePadrinos();
+
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(rows.length / LIST_PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paginated = rows.slice((currentPage - 1) * LIST_PAGE_SIZE, currentPage * LIST_PAGE_SIZE);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -115,7 +121,7 @@ function PadrinosPage() {
                       <Button size="sm" variant="outline" onClick={openNew}><Plus className="mr-2 h-4 w-4" />Nuevo padrino</Button>
                     </div>
                   </TableCell></TableRow>
-                ) : rows.map((r) => (
+                ) : paginated.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell className="font-medium">{r.full_name}</TableCell>
                     <TableCell>{r.dni ?? "—"}</TableCell>
@@ -159,7 +165,7 @@ function PadrinosPage() {
                 </div>
               </div>
             ) : (
-              rows.map((r) => (
+              paginated.map((r) => (
                 <Card key={r.id} className="shadow-soft">
                   <CardContent className="p-4 space-y-2">
                     <div className="flex items-center justify-between">
@@ -190,6 +196,13 @@ function PadrinosPage() {
               ))
             )}
           </div>
+          <ListPagination
+            page={currentPage}
+            totalPages={totalPages}
+            total={rows.length}
+            itemLabel="padrinos"
+            onPageChange={setPage}
+          />
         </CardContent>
       </Card>
 
