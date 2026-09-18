@@ -9,7 +9,13 @@ export default defineConfig({
   plugins: [
     tsConfigPaths(),
     TanStackRouterVite(),
-    tanstackStart(),
+    tanstackStart({
+      // Static SPA build: emits the prerendered shell into the client output
+      // directory so Vercel can serve it as a static site (see vercel.json).
+      spa: {
+        enabled: true,
+      },
+    }),
     react(),
     tailwindcss(),
   ],

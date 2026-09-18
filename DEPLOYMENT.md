@@ -23,4 +23,4 @@ En el dashboard de Vercel → Settings → Environment Variables, agregar:
 npm run build
 ```
 
-El resultado debe estar en `.output/public/`.
+El resultado debe estar en `dist/client/` (el shell estático es `_shell.html`).
