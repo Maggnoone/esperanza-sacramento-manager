@@ -66,7 +66,7 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar collapsible="icon" className="sidebar-rail top-3 bottom-3 h-auto p-3">
+    <Sidebar collapsible="icon" className="sidebar-rail top-3 bottom-3 h-auto p-4">
       <SidebarHeader>
         <Link
           to="/app"

@@ -139,7 +139,16 @@ function PagosPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="shadow-soft"><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Recaudado</CardTitle></CardHeader><CardContent><div className="font-display text-2xl font-semibold text-success">{formatCurrency(totalRecaudado)}</div></CardContent></Card>
+        <Card className="shadow-soft border-transparent bg-gradient-brand">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-white/80">Recaudado</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="font-display text-2xl font-semibold text-white">
+              {formatCurrency(totalRecaudado)}
+            </div>
+          </CardContent>
+        </Card>
         <Card className="shadow-soft"><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Pendiente</CardTitle></CardHeader><CardContent><div className="font-display text-2xl font-semibold text-warning">{formatCurrency(pendienteTotal)}</div></CardContent></Card>
         <Card className="shadow-soft"><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Meta total</CardTitle></CardHeader><CardContent><div className="font-display text-2xl font-semibold">{formatCurrency(metaTotal)}</div><Progress className="mt-2" value={metaTotal ? (totalRecaudado / metaTotal) * 100 : 0} /></CardContent></Card>
       </div>

@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { formatDateTime, exportToCSV, exportToXLSX, exportToPDF } from "@/lib/export";
 import { ClipboardCheck, Download, FileSpreadsheet, FileText } from "lucide-react";
 import { useCharlasList, useConfirmandosActivos, useAsistencia } from "@/hooks/use-data";
+import { useAuth } from "@/hooks/use-auth";
 import type { Asistencia } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/app/asistencia")({ component: AsistenciaPage });
@@ -18,6 +19,7 @@ export const Route = createFileRoute("/app/asistencia")({ component: AsistenciaP
 function AsistenciaPage() {
   const qc = useQueryClient();
   const [charlaId, setCharlaId] = useState<string>("");
+  const { user } = useAuth();
 
   const { data: charlas = [] } = useCharlasList();
   const { data: confirmandos = [] } = useConfirmandosActivos();
@@ -32,19 +34,32 @@ function AsistenciaPage() {
   const toggle = useMutation({
     mutationFn: async ({ confirmando_id, presente }: { confirmando_id: string; presente: boolean }) => {
       const existing = asistMap.get(confirmando_id);
-      if (existing) {
+      if (existing?.id) {
         const { error } = await supabase.from("asistencia").update({ presente }).eq("id", existing.id);
         if (error) throw error;
       } else {
-        const { data: u } = await supabase.auth.getUser();
         const { error } = await supabase
           .from("asistencia")
-          .insert({ charla_id: charlaId, confirmando_id, presente, registered_by: u.user?.id });
+          .insert({ charla_id: charlaId, confirmando_id, presente, registered_by: user?.id });
         if (error) throw error;
       }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["asistencia", charlaId] }),
-    onError: (e: Error) => toast.error(e.message),
+    onMutate: async ({ confirmando_id, presente }) => {
+      await qc.cancelQueries({ queryKey: ["asistencia", charlaId] });
+      const previous = qc.getQueryData<Asistencia[]>(["asistencia", charlaId]);
+      qc.setQueryData<Asistencia[]>(["asistencia", charlaId], (old = []) => {
+        const exists = old.some((a) => a.confirmando_id === confirmando_id);
+        return exists
+          ? old.map((a) => (a.confirmando_id === confirmando_id ? { ...a, presente } : a))
+          : [...old, { confirmando_id, presente, charla_id: charlaId } as Asistencia];
+      });
+      return { previous };
+    },
+    onError: (e: Error, _vars, ctx) => {
+      if (ctx?.previous) qc.setQueryData(["asistencia", charlaId], ctx.previous);
+      toast.error(e.message);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["asistencia", charlaId] }),
   });
 
   const presentes = asistencia.filter((a) => a.presente).length;

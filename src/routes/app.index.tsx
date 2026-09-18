@@ -40,7 +40,8 @@ interface DashboardStats {
   padrinos: number;
   charlas: number;
   asistPct: number;
-  recaudado: number;
+  cobradoReal: number;
+  metaRetiro: number;
   pendiente: number;
   pendingRequirements: ChartCategory[];
   confirmandoStatuses: ChartCategory[];
@@ -53,6 +54,7 @@ interface KpiCard {
   format?: (value: number) => string;
   icon: LucideIcon;
   hint?: string;
+  variant?: "default" | "brand";
 }
 
 function Dashboard() {
@@ -102,7 +104,7 @@ function Dashboard() {
       const totalAsist = attendanceRows.length;
       const presentes = attendanceRows.filter((a) => a.presente).length;
       const paymentRows = (pagos.data ?? []) as Pick<Pago, "monto" | "concepto">[];
-      const recaudado = paymentRows.reduce(
+      const cobradoReal = paymentRows.reduce(
         (sum, payment) =>
           payment.concepto === "retiro" && Number.isFinite(Number(payment.monto))
             ? sum + Number(payment.monto)
@@ -117,8 +119,9 @@ function Dashboard() {
         padrinos: padrinos.count ?? 0,
         charlas: charlas.count ?? 0,
         asistPct: totalAsist ? Math.round((presentes / totalAsist) * 100) : 0,
-        recaudado,
-        pendiente: Math.max(costoTotal - recaudado, 0),
+        cobradoReal,
+        metaRetiro: costoTotal,
+        pendiente: Math.max(costoTotal - cobradoReal, 0),
         pendingRequirements: buildPendingRequirements(dataConf),
         confirmandoStatuses: buildConfirmandoStatusCounts(dataConf),
         attendanceTrend: buildAttendanceTrend(charlas.data ?? [], attendanceRows),
@@ -132,6 +135,7 @@ function Dashboard() {
       value: stats?.totalConf ?? 0,
       icon: Users,
       hint: `${stats?.conBautismo ?? 0} con bautismo`,
+      variant: "brand",
     },
     {
       label: "Aptos / Confirmados",
@@ -162,10 +166,10 @@ function Dashboard() {
       ? [
           {
             label: "Recaudado retiro",
-            value: stats?.recaudado ?? 0,
+            value: stats?.metaRetiro ?? 0,
             format: formatCurrency,
             icon: Wallet,
-            hint: `Pendiente: ${formatCurrency(stats?.pendiente ?? 0)}`,
+            hint: `Cobrado: ${formatCurrency(stats?.cobradoReal ?? 0)} · Pendiente: ${formatCurrency(stats?.pendiente ?? 0)}`,
           },
         ]
       : []),
@@ -178,6 +182,7 @@ function Dashboard() {
       format={card.format}
       icon={card.icon}
       hint={card.hint}
+      variant={card.variant}
     />
   );
 

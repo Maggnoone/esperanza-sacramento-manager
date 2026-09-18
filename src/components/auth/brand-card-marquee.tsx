@@ -91,12 +91,12 @@ export function BrandCardMarquee() {
       className="pointer-events-none absolute inset-0 select-none overflow-hidden"
     >
       <div
-        className="absolute bottom-[-10%] right-[-25%] w-[170%]"
+        className="absolute bottom-[75%] right-[-50%] w-[150%]"
         style={{
-          transform: "rotate(-24deg)",
+          transform: "rotate(-14deg)",
           transformOrigin: "bottom right",
-          maskImage: "linear-gradient(300deg, #000 46%, transparent 82%)",
-          WebkitMaskImage: "linear-gradient(300deg, #000 46%, transparent 82%)",
+          maskImage: "linear-gradient(300deg, #000 70%, transparent 100%)",
+          WebkitMaskImage: "linear-gradient(300deg, #000 70%, transparent 100%)",
         }}
       >
         <div className="flex flex-col gap-5">

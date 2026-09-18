@@ -20,9 +20,9 @@ function CalendarioPage() {
 
   const tipoColor: Record<string, string> = {
     retiro: "bg-gradient-primary text-primary-foreground",
-    convivencia: "bg-gold/20 text-gold-foreground border-gold/40",
-    charla: "bg-secondary",
-    celebracion: "bg-accent",
+    convivencia: "bg-success text-primary-foreground",
+    charla: "bg-success text-primary-foreground",
+    celebracion: "bg-accent text-accent-foreground",
   };
 
   return (

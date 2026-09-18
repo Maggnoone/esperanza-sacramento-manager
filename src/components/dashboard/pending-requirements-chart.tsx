@@ -8,10 +8,11 @@ import {
   Tooltip,
   XAxis,
   YAxis,
+  type TooltipProps,
 } from "recharts";
 
 import type { ChartCategory } from "@/lib/dashboard-chart-data";
-import { DashboardChartCard } from "./dashboard-chart-card";
+import { ChartTooltipFrame, DashboardChartCard } from "./dashboard-chart-card";
 import { toSvgId } from "./chart-utils";
 
 interface PendingRequirementsChartProps {
@@ -21,6 +22,18 @@ interface PendingRequirementsChartProps {
 }
 
 const REQUIREMENT_COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)"];
+
+function RequirementTooltip({ active, payload, label }: TooltipProps<number, string>) {
+  if (!active || !payload || payload.length === 0) return null;
+  const value = Number(payload[0].value ?? 0);
+
+  return (
+    <ChartTooltipFrame>
+      <p className="font-medium">{String(label ?? "")}</p>
+      <p className="mt-1 text-muted-foreground">{value} confirmandos pendientes</p>
+    </ChartTooltipFrame>
+  );
+}
 
 export function PendingRequirementsChart({
   data,
@@ -83,13 +96,8 @@ export function PendingRequirementsChart({
               />
               <Tooltip
                 cursor={{ fill: "var(--muted)", opacity: 0.55 }}
-                formatter={(value: number) => [`${value} confirmandos`, "Pendientes"]}
-                contentStyle={{
-                  borderColor: "var(--border)",
-                  borderRadius: 8,
-                  background: "var(--popover)",
-                  color: "var(--popover-foreground)",
-                }}
+                wrapperStyle={{ zIndex: 20, outline: "none" }}
+                content={<RequirementTooltip />}
               />
               <Bar
                 dataKey="value"

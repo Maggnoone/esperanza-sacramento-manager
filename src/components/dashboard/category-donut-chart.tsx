@@ -1,7 +1,7 @@
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip, type TooltipProps } from "recharts";
 
 import type { ChartCategory } from "@/lib/dashboard-chart-data";
-import { DashboardChartCard } from "./dashboard-chart-card";
+import { ChartTooltipFrame, DashboardChartCard } from "./dashboard-chart-card";
 
 interface CategoryDonutChartProps {
   data: ChartCategory[];
@@ -36,6 +36,29 @@ interface CategoryDonutChartProps {
 const DEFAULT_TOOLTIP = (value: number) => String(value);
 const DEFAULT_VALUE = (value: number) => String(value);
 const DEFAULT_CENTER = (total: number) => String(total);
+
+interface DonutTooltipProps extends TooltipProps<number, string> {
+  formatter: (value: number) => string;
+  total: number;
+}
+
+function DonutTooltip({ active, payload, formatter, total }: DonutTooltipProps) {
+  if (!active || !payload || payload.length === 0) return null;
+  const entry = payload[0];
+  const value = Number(entry.value ?? 0);
+  const label = String(entry.name ?? "");
+  const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+
+  return (
+    <ChartTooltipFrame>
+      <p className="font-medium">{label}</p>
+      <p className="mt-1 text-muted-foreground">
+        {formatter(value)}
+        {total > 0 ? ` · ${pct}%` : ""}
+      </p>
+    </ChartTooltipFrame>
+  );
+}
 
 export function CategoryDonutChart({
   data,
@@ -91,13 +114,8 @@ export function CategoryDonutChart({
                 ))}
               </Pie>
               <Tooltip
-                formatter={(value: number, name: string) => [tooltipValueFormatter(value), name]}
-                contentStyle={{
-                  borderColor: "var(--border)",
-                  borderRadius: 8,
-                  background: "var(--popover)",
-                  color: "var(--popover-foreground)",
-                }}
+                wrapperStyle={{ zIndex: 20, outline: "none" }}
+                content={<DonutTooltip formatter={tooltipValueFormatter} total={total} />}
               />
             </PieChart>
           </ResponsiveContainer>

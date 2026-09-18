@@ -40,7 +40,7 @@ export function AuthBrandPanel() {
         {/* Legibility wash so the copy stays readable over the cards */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 bg-linear-to-t from-[#08120f]/80 via-[#08120f]/10 to-transparent"
+          className="pointer-events-none absolute inset-0 bg-linear-to-t from-[#08120f]/50 via-[#08120f]/10 to-transparent"
         />
 
         {/* Content */}

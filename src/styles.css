@@ -140,6 +140,7 @@
   --gradient-primary: linear-gradient(135deg, #0d9488, #0f766e);
   --gradient-gold: linear-gradient(135deg, #fbbf24, #d97706);
   --gradient-hero: linear-gradient(180deg, #f5f9f8, #ffffff);
+  --gradient-brand: linear-gradient(150deg, #0f766e 0%, #0c3b36 48%, #08120f 100%);
   --shadow-soft-token: 0 1px 3px rgba(13, 42, 37, 0.05), 0 1px 2px rgba(13, 42, 37, 0.04);
   --shadow-elegant-token: 0 8px 24px rgba(13, 42, 37, 0.08);
   --shadow-glow-token: 0 0 40px rgba(13, 148, 136, 0.18);
@@ -261,6 +262,9 @@
   .bg-gradient-hero {
     background-image: var(--gradient-hero);
   }
+  .bg-gradient-brand {
+    background-image: var(--gradient-brand);
+  }
   .text-balance {
     text-wrap: balance;
   }
@@ -356,9 +360,9 @@
    that never match `(hover: hover)`. Without this split the rail would fall
    back to the primitive's 3rem width and clip the rows. */
 @media (min-width: 768px) {
-  /* 88px rail at rest. */
+  /* 96px rail at rest. */
   [data-collapsible="icon"] {
-    --sidebar-width-icon: 5.5rem;
+    --sidebar-width-icon: 6rem;
   }
 
   /* Center rail content horizontally. */
@@ -392,7 +396,7 @@
      intentionally NOT gated by `(hover: hover)` so touch-only + keyboard
      devices can still read the rail. Mirrors the hover reveal below. */
   [data-collapsible="icon"]:focus-within .sidebar-rail {
-    width: 15.5rem;
+    width: 16.5rem;
   }
   [data-collapsible="icon"]:focus-within .sidebar-rail .sidebar-label {
     opacity: 1;
@@ -408,11 +412,11 @@
 
 /* HOVER state — pointer devices only. Kept separate from the rest rules so
    touch-only ≥768px devices keep the full rail and use `:focus-within`.
-   Hover expands only the fixed container (overlay); the spacer keeps its 88px,
+   Hover expands only the fixed container (overlay); the spacer keeps its 96px,
    so the content column — and Recharts' ResponsiveContainer — never reflows. */
 @media (min-width: 768px) and (hover: hover) {
   [data-collapsible="icon"]:hover .sidebar-rail {
-    width: 15.5rem;
+    width: 16.5rem;
   }
   [data-collapsible="icon"]:hover .sidebar-rail .sidebar-label {
     opacity: 1;
@@ -443,13 +447,13 @@
     }
     /* Keyboard expansion. */
     [data-collapsible="icon"]:focus-within .sidebar-rail .sidebar-rail-item {
-      width: 12.5rem !important;
+      width: 13rem !important;
     }
   }
   /* Pointer-only expansion. */
   @media (min-width: 768px) and (hover: hover) {
     [data-collapsible="icon"]:hover .sidebar-rail .sidebar-rail-item {
-      width: 12.5rem !important;
+      width: 13rem !important;
     }
   }
 }
