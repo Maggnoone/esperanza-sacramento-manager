@@ -141,7 +141,7 @@ export function NotificationsPopover() {
               {pending.map((row) => (
                 <li key={row.id}>
                   <Link
-                    to="/app/pagos"
+                    to="/app/pagos-retiro"
                     onClick={close}
                     className="flex items-start gap-3 rounded-2xl p-3 transition-colors hover:bg-accent"
                   >
@@ -177,7 +177,7 @@ export function NotificationsPopover() {
           </Link>
           {canSeePagos ? (
             <Link
-              to="/app/pagos"
+              to="/app/pagos-retiro"
               onClick={close}
               className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
             >

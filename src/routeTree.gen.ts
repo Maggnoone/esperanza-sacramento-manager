@@ -14,6 +14,8 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppReportesRouteImport } from './routes/app.reportes'
+import { Route as AppPagosRetiroRouteImport } from './routes/app.pagos-retiro'
+import { Route as AppPagosBoletaRouteImport } from './routes/app.pagos-boleta'
 import { Route as AppPagosRouteImport } from './routes/app.pagos'
 import { Route as AppPadrinosRouteImport } from './routes/app.padrinos'
 import { Route as AppConfirmandosRouteImport } from './routes/app.confirmandos'
@@ -45,6 +47,16 @@ const AppIndexRoute = AppIndexRouteImport.update({
 const AppReportesRoute = AppReportesRouteImport.update({
   id: '/reportes',
   path: '/reportes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPagosRetiroRoute = AppPagosRetiroRouteImport.update({
+  id: '/pagos-retiro',
+  path: '/pagos-retiro',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPagosBoletaRoute = AppPagosBoletaRouteImport.update({
+  id: '/pagos-boleta',
+  path: '/pagos-boleta',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPagosRoute = AppPagosRouteImport.update({
@@ -94,6 +106,8 @@ export interface FileRoutesByFullPath {
   '/app/confirmandos': typeof AppConfirmandosRoute
   '/app/padrinos': typeof AppPadrinosRoute
   '/app/pagos': typeof AppPagosRoute
+  '/app/pagos-boleta': typeof AppPagosBoletaRoute
+  '/app/pagos-retiro': typeof AppPagosRetiroRoute
   '/app/reportes': typeof AppReportesRoute
   '/app/': typeof AppIndexRoute
 }
@@ -107,6 +121,8 @@ export interface FileRoutesByTo {
   '/app/confirmandos': typeof AppConfirmandosRoute
   '/app/padrinos': typeof AppPadrinosRoute
   '/app/pagos': typeof AppPagosRoute
+  '/app/pagos-boleta': typeof AppPagosBoletaRoute
+  '/app/pagos-retiro': typeof AppPagosRetiroRoute
   '/app/reportes': typeof AppReportesRoute
   '/app': typeof AppIndexRoute
 }
@@ -122,6 +138,8 @@ export interface FileRoutesById {
   '/app/confirmandos': typeof AppConfirmandosRoute
   '/app/padrinos': typeof AppPadrinosRoute
   '/app/pagos': typeof AppPagosRoute
+  '/app/pagos-boleta': typeof AppPagosBoletaRoute
+  '/app/pagos-retiro': typeof AppPagosRetiroRoute
   '/app/reportes': typeof AppReportesRoute
   '/app/': typeof AppIndexRoute
 }
@@ -138,6 +156,8 @@ export interface FileRouteTypes {
     | '/app/confirmandos'
     | '/app/padrinos'
     | '/app/pagos'
+    | '/app/pagos-boleta'
+    | '/app/pagos-retiro'
     | '/app/reportes'
     | '/app/'
   fileRoutesByTo: FileRoutesByTo
@@ -151,6 +171,8 @@ export interface FileRouteTypes {
     | '/app/confirmandos'
     | '/app/padrinos'
     | '/app/pagos'
+    | '/app/pagos-boleta'
+    | '/app/pagos-retiro'
     | '/app/reportes'
     | '/app'
   id:
@@ -165,6 +187,8 @@ export interface FileRouteTypes {
     | '/app/confirmandos'
     | '/app/padrinos'
     | '/app/pagos'
+    | '/app/pagos-boleta'
+    | '/app/pagos-retiro'
     | '/app/reportes'
     | '/app/'
   fileRoutesById: FileRoutesById
@@ -210,6 +234,20 @@ declare module '@tanstack/react-router' {
       path: '/reportes'
       fullPath: '/app/reportes'
       preLoaderRoute: typeof AppReportesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/pagos-retiro': {
+      id: '/app/pagos-retiro'
+      path: '/pagos-retiro'
+      fullPath: '/app/pagos-retiro'
+      preLoaderRoute: typeof AppPagosRetiroRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/pagos-boleta': {
+      id: '/app/pagos-boleta'
+      path: '/pagos-boleta'
+      fullPath: '/app/pagos-boleta'
+      preLoaderRoute: typeof AppPagosBoletaRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/pagos': {
@@ -272,6 +310,8 @@ interface AppRouteChildren {
   AppConfirmandosRoute: typeof AppConfirmandosRoute
   AppPadrinosRoute: typeof AppPadrinosRoute
   AppPagosRoute: typeof AppPagosRoute
+  AppPagosBoletaRoute: typeof AppPagosBoletaRoute
+  AppPagosRetiroRoute: typeof AppPagosRetiroRoute
   AppReportesRoute: typeof AppReportesRoute
   AppIndexRoute: typeof AppIndexRoute
 }
@@ -284,6 +324,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfirmandosRoute: AppConfirmandosRoute,
   AppPadrinosRoute: AppPadrinosRoute,
   AppPagosRoute: AppPagosRoute,
+  AppPagosBoletaRoute: AppPagosBoletaRoute,
+  AppPagosRetiroRoute: AppPagosRetiroRoute,
   AppReportesRoute: AppReportesRoute,
   AppIndexRoute: AppIndexRoute,
 }

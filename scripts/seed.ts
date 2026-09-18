@@ -54,12 +54,6 @@ function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-function pickSome<T>(arr: T[], min: number, max: number): T[] {
-  const count = Math.floor(Math.random() * (max - min + 1)) + min;
-  const shuffled = [...arr].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, count);
-}
-
 function randomDate(start: Date, end: Date): string {
   const t = start.getTime() + Math.random() * (end.getTime() - start.getTime());
   return new Date(t).toISOString().split("T")[0];
@@ -376,17 +370,29 @@ async function main() {
       concepto: "retiro",
     }));
   });
-  // Add some boleta payments for ~40% of confirmandos
-  const boletaPagos = pickSome(confirmandos, 5, 10).map((c) => ({
-    id: uuid(),
-    confirmando_id: c.id,
-    monto: pick([3000, 5000, 7000]),
-    fecha: randomDate(new Date(2025, 3, 1), new Date(2026, 1, 28)),
-    metodo: pick(metodosPago),
-    referencia: `BOLETA-${Math.floor(Math.random() * 99999)}`,
-    notas: "Boleta de confirmación",
-    concepto: "boleta",
-  }));
+  // Boleta payments (boleta cost: $5000). Distribution:
+  // ~15% sin pagar, ~40% fully paid (total 5000), ~45% partial (total 1500–3500).
+  const boletaPagos = confirmandos.flatMap((c) => {
+    const roll = Math.random();
+    if (roll < 0.15) return [];
+    const makePago = (monto: number) => ({
+      id: uuid(),
+      confirmando_id: c.id,
+      monto,
+      fecha: randomDate(new Date(2025, 3, 1), new Date(2026, 1, 28)),
+      metodo: pick(metodosPago),
+      referencia: `BOLETA-${Math.floor(Math.random() * 99999)}`,
+      notas: "Boleta de confirmación",
+      concepto: "boleta",
+    });
+    if (roll < 0.55) {
+      // Fully paid: one payment of 5000 or two of 2500.
+      return Math.random() > 0.5 ? [makePago(5000)] : [makePago(2500), makePago(2500)];
+    }
+    // Partial: total between 1500 and 3500, single payment or split.
+    const total = 1500 + Math.floor(Math.random() * 2001);
+    return Math.random() > 0.5 ? [makePago(total)] : [makePago(total - 1000), makePago(1000)];
+  });
   const allPagos = [...pagos, ...boletaPagos];
   const { error: paErr } = await supabase.from("pagos").insert(allPagos);
   if (paErr) throw paErr;

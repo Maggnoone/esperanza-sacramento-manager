@@ -20,6 +20,7 @@ import {
   ClipboardCheck,
   BookOpen,
   Wallet,
+  Receipt,
   FileBarChart,
   Settings,
   LogOut,
@@ -39,7 +40,9 @@ export function AppSidebar() {
   };
 
   const isActive = (path: string) =>
-    path === "/app" ? currentPath === "/app" : currentPath.startsWith(path);
+    path === "/app"
+      ? currentPath === "/app"
+      : currentPath === path || currentPath.startsWith(`${path}/`);
 
   const mainItems = [
     { title: "Inicio", url: "/app", icon: LayoutDashboard },
@@ -54,7 +57,12 @@ export function AppSidebar() {
   ];
 
   const adminItems = [
-    ...(canSeePagos ? [{ title: "Pagos del Retiro", url: "/app/pagos", icon: Wallet }] : []),
+    ...(canSeePagos
+      ? [
+          { title: "Pagos del Retiro", url: "/app/pagos-retiro", icon: Wallet },
+          { title: "Pagos de la Boleta", url: "/app/pagos-boleta", icon: Receipt },
+        ]
+      : []),
     { title: "Reportes", url: "/app/reportes", icon: FileBarChart },
     ...(isAdmin ? [{ title: "Configuración", url: "/app/configuracion", icon: Settings }] : []),
   ];

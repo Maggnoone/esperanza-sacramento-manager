@@ -35,7 +35,7 @@ type AppRoute =
   | "/app/asistencia"
   | "/app/charlas"
   | "/app/calendario"
-  | "/app/pagos"
+  | "/app/pagos-retiro"
   | "/app/reportes"
   | "/app/configuracion";
 
@@ -53,7 +53,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Asistencia", to: "/app/asistencia", icon: ClipboardCheck },
   { label: "Charlas", to: "/app/charlas", icon: BookOpen },
   { label: "Calendario", to: "/app/calendario", icon: CalendarDays },
-  { label: "Pagos", to: "/app/pagos", icon: Wallet, requires: "pagos" },
+  { label: "Pagos del Retiro", to: "/app/pagos-retiro", icon: Wallet, requires: "pagos" },
   { label: "Reportes", to: "/app/reportes", icon: FileBarChart },
   { label: "Configuración", to: "/app/configuracion", icon: Settings, requires: "admin" },
 ];
@@ -135,7 +135,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
         <CommandGroup heading="Acciones">
           {canSeePagos ? (
-            <CommandItem value="Registrar pago" onSelect={() => goTo("/app/pagos")}>
+            <CommandItem value="Registrar pago" onSelect={() => goTo("/app/pagos-retiro")}>
               <Wallet />
               <span>Registrar pago</span>
             </CommandItem>
